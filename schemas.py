@@ -35,12 +35,10 @@ class Archive(BaseModel):
     class Config:
         from_attributes = True
 
-# --- 新增：用于接收 POST 请求的结构体 ---
-
 class UserCreate(BaseModel):
     student_id: str
     name: str
-    avatar: str = "https://via.placeholder.com/150"
+    avatar: str = "https://api.dicebear.com/7.x/notionists/svg?seed=default"
     real_id: str = "1100000000000"
     class_name: str = "体验班级"
     position: str = "体验用户"

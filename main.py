@@ -63,7 +63,7 @@ def get_archives(user_id: str, category: str = "all", db: Session = Depends(data
         
     return result
 
-# --- 新增的 POST 写入接口 ---
+# --- POST 写入接口 ---
 
 # 1. 注册新用户
 @app.post("/api/users/register", response_model=schemas.UserBase)
@@ -79,7 +79,11 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_d
 # 2. 借阅图书
 @app.post("/api/library/borrow")
 def borrow_book(req: schemas.BorrowRequest, db: Session = Depends(database.get_db)):
-    archive = db.query(models.Archive).filter(models.Archive.student_id == req.student_id, models.Archive.category == 'library').first()
+    # 查找该用户的图书档案
+    archive = db.query(models.Archive).filter(
+        models.Archive.student_id == req.student_id, 
+        models.Archive.category == 'library'
+    ).first()
     
     new_book = {
         "title": req.title,
@@ -92,40 +96,19 @@ def borrow_book(req: schemas.BorrowRequest, db: Session = Depends(database.get_d
     }
     
     if archive:
-        # SQLite JSON column needs reassignment to trigger update
+        # 如果已有档案，向列表顶部插入新书
         new_content = list(archive.content) if isinstance(archive.content, list) else [archive.content]
         new_content.insert(0, new_book)
         archive.content = new_content
+        # 必须标记修改，否则 SQLAlchemy 无法监测到 JSON 内部变化
         flag_modified(archive, "content")
     else:
+        # 如果没有档案，新建一条记录
         archive = models.Archive(student_id=req.student_id, category='library', content=[new_book])
         db.add(archive)
         
     db.commit()
     return {"message": "借阅成功", "book": new_book}
-
-# 3. 预约场地 (预留功能)
-@app.post("/api/venues/reserve")
-def reserve_venue(req: schemas.VenueReservation, db: Session = Depends(database.get_db)):
-    archive = db.query(models.Archive).filter(models.Archive.student_id == req.student_id, models.Archive.category == 'venue').first()
-    new_res = {
-        "venue_name": req.venue_name,
-        "date": req.date,
-        "time_slot": req.time_slot,
-        "status": "预约成功"
-    }
-    
-    if archive:
-        new_content = list(archive.content) if isinstance(archive.content, list) else [archive.content]
-        new_content.insert(0, new_res)
-        archive.content = new_content
-        flag_modified(archive, "content")
-    else:
-        archive = models.Archive(student_id=req.student_id, category='venue', content=[new_res])
-        db.add(archive)
-        
-    db.commit()
-    return {"message": "场地预约成功", "reservation": new_res}
 
 if __name__ == "__main__":
     import uvicorn

@@ -181,7 +181,6 @@
                 <button onclick="toggleUserModal(false)" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"><i class="ph ph-x"></i></button>
             </div>
             
-            <!-- 新增快速注册体验按钮 -->
             <button onclick="quickRegister()" id="quick-register-btn" class="w-full mb-4 bg-dark text-white py-3 rounded-2xl text-sm font-bold shadow-md hover:bg-opacity-90 transition flex justify-center items-center gap-2">
                 <i class="ph-bold ph-plus-circle"></i> 一键注册并体验新账号
             </button>
@@ -192,10 +191,8 @@
     </div>
 
     <script>
-        // --- 核心改变：动态识别环境 API ---
         const isLocal = window.location.protocol === 'file:' || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
         const API_BASE = isLocal ? "http://127.0.0.1:8000/api" : "/api";
-
         let currentUserId = localStorage.getItem('edu_space_user') || 'huang_jiaxi';
         let newsData = [];
         let sliderIndex = 0;
@@ -225,11 +222,10 @@
 
             } catch (err) {
                 console.error("加载失败:", err);
-                // 静默处理，可能是刚注册的账号或默认 ID 不存在
+                document.getElementById('user-greeting').textContent = "服务不可用";
             }
         }
 
-        // --- 新增：调用后端 POST 接口完成注册 ---
         async function quickRegister() {
             const btn = document.getElementById('quick-register-btn');
             btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> 正在创建账号...';
@@ -244,7 +240,7 @@
                     body: JSON.stringify({
                         student_id: randomId,
                         name: `访客 ${Math.floor(Math.random() * 1000)}`,
-                        avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${randomId}` // 使用随机头像生成服务
+                        avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${randomId}`
                     })
                 });
 

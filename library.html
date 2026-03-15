@@ -276,10 +276,7 @@
                 </div>
 
                 <div class="mt-10 flex gap-4">
-                    <!-- 绑定借阅函数 -->
-                    <button onclick="LibraryApp.borrowCurrentBook()" id="borrow-btn" class="flex-1 bg-dark text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-opacity-90 active:scale-95 transition-all">
-                        立即预约借阅
-                    </button>
+                    <button onclick="LibraryApp.borrowCurrentBook()" id="borrow-btn" class="flex-1 bg-dark text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-opacity-90 active:scale-95 transition-all">立即预约借阅</button>
                     <button class="w-16 h-16 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-dark hover:bg-gray-50 shadow-sm active:scale-95 transition-all">
                         <i class="ph-bold ph-heart text-xl"></i>
                     </button>
@@ -338,7 +335,6 @@
     </div>
 
     <script>
-        // --- 核心改变：动态识别环境 API ---
         const isLocal = window.location.protocol === 'file:' || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
         const API_BASE = isLocal ? "http://127.0.0.1:8000/api" : "/api";
 
@@ -376,7 +372,7 @@
                 galleryIndex: 0,
                 sliderTimer: null,
                 randomKeywords: ['popular psychology', 'classic novels', 'science history', 'modern architecture'],
-                currentViewingBook: null // 用于记录当前在详情模态框中查看的书，方便发起借阅请求
+                currentViewingBook: null
             },
 
             async init() {
@@ -555,10 +551,8 @@
                 let coverId = '';
                 if (work.covers && work.covers.length > 0) coverId = work.covers[0];
                 else if (searchData && searchData.cover_i) coverId = searchData.cover_i;
-
                 const coverUrl = coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : 'https://via.placeholder.com/400x600?text=No+Cover';
 
-                // 保存当前选中的书，用于后续提交 POST 请求
                 this.state.currentViewingBook = {
                     title: title,
                     author: author,
@@ -582,15 +576,15 @@
                 const translateBtn = document.getElementById('translate-btn');
                 translateBtn.innerHTML = `<i class="ph ph-translate text-sm"></i> 翻译为中文`;
                 translateBtn.disabled = false;
-
+                
                 const borrowBtn = document.getElementById('borrow-btn');
                 borrowBtn.textContent = '立即预约借阅';
                 borrowBtn.disabled = false;
+                borrowBtn.className = "flex-1 bg-dark text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-opacity-90 active:scale-95 transition-all";
 
                 this.toggleBookDetailModal(true);
             },
-
-            // --- 新增：调用后端 POST 接口完成真实借阅逻辑 ---
+            
             async borrowCurrentBook() {
                 if (!this.state.currentViewingBook) return;
                 const btn = document.getElementById('borrow-btn');
@@ -613,8 +607,8 @@
 
                     if (response.ok) {
                         btn.innerHTML = `<i class="ph ph-check-circle text-accentGreen"></i> 借阅成功`;
+                        btn.classList.remove('bg-dark', 'text-white');
                         btn.classList.add('bg-gray-100', 'text-dark');
-                        // 提示用户去看板查看
                         setTimeout(() => {
                             this.toggleBookDetailModal(false);
                             this.toggleBorrowingModal(true);
