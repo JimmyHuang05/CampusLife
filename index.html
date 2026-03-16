@@ -3,81 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CampusLife - 首页</title>
+    <title>CampusLife - 首页主控台</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
     
+    <!-- 引入核心数据同步接口 -->
+    <script src="ai_helper.js"></script>
+
+    <!-- 引入 Supabase JS SDK 及初始化 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const _supabaseUrl = 'https://rrkyvgexkadfkucokmyv.supabase.co';
+        const _supabaseKey = 'sb_publishable_K1G2kk2BaS42t9IYQC3Nkw_v8n-H4ef';
+        window.supabase = supabase.createClient(_supabaseUrl, _supabaseKey);
+        console.log("Supabase Client Initialized (index):", window.supabase);
+    </script>
+
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['DM Sans', 'sans-serif'],
-                        serif: ['"Noto Serif SC"', 'serif'],
-                    },
-                    colors: {
-                        bg: '#F3F0EA',
-                        card: '#EBE7E0',
-                        cardLight: '#FDFBF7',
-                        dark: '#1A1B1F',
-                        accentYellow: '#FFD646',
-                        accentOrange: '#FF9B85',
-                        accentRed: '#FF6B6B',
-                        accentBlue: '#A0C4FF',
-                        accentPurple: '#BDB2FF',
-                        accentGreen: '#16A34A',
-                        textGray: '#9CA3AF',
-                        textDark: '#1F2937'
-                    },
-                    boxShadow: {
-                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-                    }
+                    fontFamily: { sans: ['DM Sans', 'sans-serif'], serif: ['"Noto Serif SC"', 'serif'] },
+                    colors: { bg: '#F3F0EA', card: '#EBE7E0', cardLight: '#FDFBF7', dark: '#1A1B1F', accentYellow: '#FFD646', accentOrange: '#FF9B85', accentRed: '#FF6B6B', accentBlue: '#A0C4FF', accentPurple: '#BDB2FF', accentGreen: '#16A34A', textGray: '#9CA3AF', textDark: '#1F2937' },
+                    boxShadow: { 'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)', 'popover': '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }
                 }
             }
         }
     </script>
-
     <style>
         ::-webkit-scrollbar { display: none !important; }
         html { scrollbar-width: none !important; -ms-overflow-style: none !important; }
         .transition-all-custom { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-        #headline-content { will-change: opacity, transform; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .modal-enter { opacity: 0; transform: scale(0.95); }
         .modal-enter-active { opacity: 1; transform: scale(1); transition: opacity 0.3s, transform 0.3s; }
+
+        /* 单色进度条样式 */
+        .progress-bar-inner {
+            width: 0%;
+            height: 100%;
+            background-color: #A0C4FF;
+            transition: width 0.4s ease-out;
+        }
     </style>
 </head>
-<body class="bg-bg min-h-screen text-textDark selection:bg-accentYellow selection:text-dark no-scrollbar">
+<body class="bg-bg min-h-screen text-textDark selection:bg-accentYellow selection:text-dark no-scrollbar font-sans text-left">
 
-    <div class="max-w-[75%] mx-auto min-h-screen relative overflow-hidden flex flex-col">
-        
-        <main id="view-dashboard" class="flex-1 p-6 lg:p-12 overflow-y-auto no-scrollbar">
+    <div class="max-w-[75%] mx-auto relative flex flex-col pt-4 pb-12">
+        <main id="page-dashboard" class="page-container flex-1 p-6 lg:p-12 block">
             <header class="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-8 lg:mb-12">
                 <div>
-                    <h1 id="user-greeting" class="text-3xl lg:text-4xl font-bold text-dark tracking-tight transition-all duration-300">正在加载...</h1>
-                    <p class="text-gray-400 text-sm mt-2">欢迎回来! 查看您关注的最新校园动态</p>
+                    <h1 id="user-greeting" class="text-3xl lg:text-4xl font-bold text-dark tracking-tight transition-all duration-300">正在连线云端...</h1>
+                    <p class="text-gray-400 text-sm mt-2">欢迎回来! 随时随地查看您的专属校园数据</p>
                 </div>
                 <div class="flex items-center gap-4 mt-6 lg:mt-0">
                     <div class="search-container relative bg-white rounded-full px-5 h-12 flex items-center gap-3 shadow-sm min-w-[300px] border border-gray-100 focus-within:ring-2 focus-within:ring-accentYellow transition-all">
                         <i class="ph ph-magnifying-glass text-gray-400 text-xl"></i>
                         <input type="text" placeholder="搜索新闻、活动或公告..." class="bg-transparent border-none outline-none text-sm w-full placeholder-gray-400">
                     </div>
-                    <button class="bg-dark text-white px-8 py-3 rounded-full text-sm font-medium hover:bg-opacity-90 transition shadow-lg whitespace-nowrap">
-                        我要投稿
-                    </button>
-                    <div onclick="toggleUserModal(true)" class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm cursor-pointer hover:ring-4 hover:ring-accentYellow/30 transition-all active:scale-95">
-                        <img id="header-avatar" src="" alt="Profile" class="w-full h-full object-cover">
+                    <button class="bg-dark text-white px-8 py-3 rounded-full text-sm font-medium hover:bg-opacity-90 transition shadow-lg whitespace-nowrap">我要投稿</button>
+                    <div onclick="toggleUserModal(true)" class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm cursor-pointer hover:ring-4 hover:ring-accentYellow/30 transition-all active:scale-95" title="管理 Campus 账号">
+                        <img id="header-avatar-dashboard" src="" alt="Profile" class="w-full h-full object-cover">
                     </div>
                 </div>
             </header>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8"> 
-                
                 <div id="headline-container" class="group col-span-12 lg:col-span-7 bg-[#E5E1D8] rounded-[32px] p-8 lg:p-10 relative overflow-hidden shadow-soft flex flex-col h-[450px] transition-all duration-500 cursor-pointer border border-gray-100/50">
-                    <div id="news-circle-1" class="absolute top-[-10%] right-[-5%] w-80 h-80 rounded-full filter blur-[80px] opacity-50 transition-all duration-1000 group-hover:scale-110"></div>
-                    <div id="news-circle-2" class="absolute bottom-[10%] left-[25%] w-64 h-64 rounded-full filter blur-[80px] opacity-40 transition-all duration-1000 group-hover:scale-110"></div>
+                    <div id="news-circle-1" class="absolute top-[-10%] right-[-5%] w-80 h-80 rounded-full filter blur-[80px] opacity-50 transition-all duration-1000 group-hover:scale-110 bg-accentRed"></div>
+                    <div id="news-circle-2" class="absolute bottom-[10%] left-[25%] w-64 h-64 rounded-full filter blur-[80px] opacity-40 transition-all duration-1000 group-hover:scale-110 bg-accentYellow"></div>
                     
                     <div id="headline-content" class="relative z-10 h-full flex flex-col justify-between transition-all-custom">
                         <div>
@@ -110,17 +104,17 @@
                         <div class="flex-1 flex flex-col items-center justify-center text-center">
                             <div class="relative mb-5 group-hover:-translate-y-1 transition-transform duration-300">
                                 <div class="w-28 h-28 rounded-full p-1 bg-gradient-to-br from-accentYellow via-accentOrange to-accentRed shadow-lg">
-                                    <img src="https://im.gurl.eu.org/file/AgACAgEAAxkDAAEBVU5pMO756lxQ05g4EUHxXdbJ-g_eIAACegtrG1AJiUXa8owFNKll_gEAAwIAA3gAAzYE.png" alt="Star Student" class="w-full h-full rounded-full object-cover border-[3px] border-white">
+                                    <img id="star-student-avatar" src="https://api.dicebear.com/7.x/notionists/svg?seed=star" alt="Star Student" class="w-full h-full rounded-full object-cover border-[3px] border-white">
                                 </div>
                                 <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-dark text-white text-[10px] px-3 py-1 rounded-full font-bold shadow-md whitespace-nowrap flex items-center gap-1 border border-white/20">
-                                    <i class="ph-fill ph-trophy text-accentYellow"></i> 年级第一
+                                    <i class="ph-fill ph-trophy text-accentYellow"></i> 卓越标兵
                                 </div>
                             </div>
-                            <h3 class="text-2xl font-bold text-dark mb-1">female</h3>
-                            <p class="text-sm text-gray-500 mb-6 font-medium">高二 (2) 班 | 纪律部 部长</p>
+                            <h3 id="star-student-name" class="text-2xl font-bold text-dark mb-1">加载中</h3>
+                            <p id="star-student-title" class="text-sm text-gray-500 mb-6 font-medium">高二 · 学生会</p>
                             <div class="bg-white/60 backdrop-blur-sm rounded-2xl p-5 shadow-sm w-full border border-white/50 relative">
                                 <i class="ph-fill ph-quotes text-2xl text-accentBlue/20 absolute top-2 left-2"></i>
-                                <p class="text-xs text-gray-600 italic leading-relaxed px-4">“在每一次挑战中突破自我，在每一次失败中寻找光亮。”</p>
+                                <p class="text-xs text-gray-600 italic leading-relaxed px-4">“在每一次挑战中突破自我，在每一次服务中寻找光亮。”</p>
                             </div>
                         </div>
                     </div>
@@ -129,19 +123,19 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
                 <div class="flex flex-col gap-6">
-                    <div onclick="window.open('archive_search.html?type=academic', '_blank')" class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all group">
+                    <div onclick="window.location.href='archive_search.html?type=academic'" class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all group">
                         <div class="flex items-start gap-5">
                             <div class="w-14 h-14 rounded-2xl bg-accentBlue/20 text-accentBlue flex items-center justify-center flex-shrink-0 group-hover:rotate-6 transition-transform"><i class="ph-fill ph-student text-2xl"></i></div>
                             <div class="flex-1"><h4 class="text-lg font-bold text-dark">学习成绩档案检索</h4><p class="text-xs text-gray-500 mt-1">查询个人学籍、档案及综合评价记录。</p></div>
                         </div>
                     </div>
-                    <div onclick="window.open('archive_search.html?type=health', '_blank')" class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all group">
+                    <div onclick="window.location.href='archive_search.html?type=health'" class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all group">
                         <div class="flex items-start gap-5">
                             <div class="w-14 h-14 rounded-2xl bg-accentBlue/20 text-accentBlue flex items-center justify-center flex-shrink-0 group-hover:rotate-6 transition-transform"><i class="ph-fill ph-first-aid text-2xl"></i></div>
                             <div class="flex-1"><h4 class="text-lg font-bold text-dark">体质健康档案检索</h4><p class="text-xs text-gray-500 mt-1">查看体格检查、视力监测及运动表现。</p></div>
                         </div>
                     </div>
-                    <div onclick="window.open('archive_search.html?type=award', '_blank')" class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all group">
+                    <div onclick="window.location.href='archive_search.html?type=award'" class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all group">
                         <div class="flex items-start gap-5">
                             <div class="w-14 h-14 rounded-2xl bg-accentBlue/20 text-accentBlue flex items-center justify-center flex-shrink-0 group-hover:rotate-6 transition-transform"><i class="ph-fill ph-star text-2xl"></i></div>
                             <div class="flex-1"><h4 class="text-lg font-bold text-dark">荣誉记录档案检索</h4><p class="text-xs text-gray-500 mt-1">检索个人奖项、荣誉称号及社会实践记录。</p></div>
@@ -150,227 +144,355 @@
                 </div>
 
                 <div class="flex flex-col gap-6">
-                    <div onclick="window.open('library.html', '_blank')" class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all group">
+                    <div onclick="window.location.href='library.html'" class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all group">
                         <div class="flex items-start gap-5">
                             <div class="w-14 h-14 rounded-2xl bg-accentRed/20 text-accentRed flex items-center justify-center flex-shrink-0 group-hover:rotate-6 transition-transform"><i class="ph-fill ph-books text-2xl"></i></div>
                             <div class="flex-1"><h4 class="text-lg font-bold text-dark">智慧图书馆服务</h4><p class="text-xs text-gray-500 mt-1">检索全球馆藏资源，在线办理借阅与预约服务。</p></div>
                         </div>
                     </div>
-                    <div class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all group">
+                    <div class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all group opacity-60">
                         <div class="flex items-start gap-5">
                             <div class="w-14 h-14 rounded-2xl bg-accentRed/20 text-accentRed flex items-center justify-center flex-shrink-0 group-hover:rotate-6 transition-transform"><i class="ph-fill ph-users-three text-2xl"></i></div>
-                            <div class="flex-1"><h4 class="text-lg font-bold text-dark">公共场地预约 (未开放)</h4><p class="text-xs text-gray-500 mt-1">预约会议室、运动场馆等校园公共空间。</p></div>
+                            <div class="flex-1"><h4 class="text-lg font-bold text-dark">公共场地预约 (待开放)</h4><p class="text-xs text-gray-500 mt-1">预约会议室、运动场馆等校园公共空间。</p></div>
                         </div>
                     </div>
-                    <div class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all group">
+                    <div class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all group opacity-60">
                         <div class="flex items-start gap-5">
                             <div class="w-14 h-14 rounded-2xl bg-accentRed/20 text-accentRed flex items-center justify-center flex-shrink-0 group-hover:rotate-6 transition-transform"><i class="ph-fill ph-heart text-2xl"></i></div>
-                            <div class="flex-1"><h4 class="text-lg font-bold text-dark">心理咨询室预约 (未开放)</h4><p class="text-xs text-gray-500 mt-1">在线预约专业心理辅导，保障身心健康。</p></div>
+                            <div class="flex-1"><h4 class="text-lg font-bold text-dark">心理咨询室预约 (待开放)</h4><p class="text-xs text-gray-500 mt-1">在线预约专业心理辅导，保障身心健康。</p></div>
                         </div>
                     </div>
                 </div>
             </div>
+            <footer class="py-8 border-t border-gray-200/50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-400">
+                <div>© 2026 Edu.Space · 校园数字化综合服务平台</div>
+            </footer>
         </main>
     </div>
 
+    <!-- 真实模拟：注册核验弹窗 -->
+    <div id="register-modal" class="fixed inset-0 z-[200] flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-bg transition-all duration-500"></div>
+        
+        <div class="relative bg-white w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden p-8 mx-4 text-center transform transition-all duration-300">
+            
+            <!-- 第一步：姓名验证 -->
+            <div id="reg-step-1">
+                <div class="w-16 h-16 bg-accentYellow/20 text-accentYellow rounded-2xl flex items-center justify-center mx-auto mb-6"><i class="ph-fill ph-sparkle text-3xl"></i></div>
+                <h3 class="text-2xl font-bold text-dark mb-2">校园身份档案核验</h3>
+                <p class="text-sm text-gray-500 mb-8">初次注册本站，请输入您的真实姓名进行教务系统身份核验。</p>
+                <input type="text" id="new-user-name" placeholder="请输入姓名 (例如: 李华)" class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 mb-4 focus:ring-2 focus:ring-accentYellow outline-none text-center font-bold text-dark">
+                <button onclick="verifyIdentity()" id="reg-verify-btn" class="w-full bg-dark text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-opacity-90 transition flex justify-center items-center gap-2"><i class="ph-bold ph-identification-badge text-lg"></i> 验证学生身份</button>
+                
+                <!-- 只有手动注册才会显示该按钮 -->
+                <button id="back-to-list-btn" onclick="closeRegistrationModal()" class="mt-4 text-xs text-gray-400 hover:text-dark hidden">返回账号列表</button>
+            </div>
+
+            <!-- 第二步：识别确认 -->
+            <div id="reg-step-2" class="hidden text-left">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 bg-accentGreen/20 text-accentGreen rounded-full flex items-center justify-center shrink-0"><i class="ph-bold ph-check text-xl"></i></div>
+                    <div><h3 class="text-xl font-bold text-dark">找到匹配的档案痕迹</h3><p class="text-xs text-gray-500">请核实系统自动识别的以下属性并确认绑定。</p></div>
+                </div>
+                <div class="space-y-4 mb-8">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">核验姓名</label>
+                        <input type="text" id="confirm-name" readonly class="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 px-4 outline-none text-dark font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">识别性别 (可勘误)</label>
+                        <select id="confirm-gender" class="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 outline-none text-dark font-bold focus:border-accentYellow">
+                            <option value="男">男</option><option value="女">女</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">分配学号</label>
+                        <input type="text" id="confirm-id" class="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 outline-none text-dark font-bold focus:border-accentYellow">
+                    </div>
+                </div>
+                <button onclick="bindAccountAndGenerate()" id="reg-generate-btn" class="w-full bg-dark text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-opacity-90 transition flex justify-center items-center gap-2">确认绑定并同步云端数据</button>
+            </div>
+
+            <!-- 第三步：单色进度条同步 -->
+            <div id="reg-step-3" class="hidden">
+                <div class="w-16 h-16 bg-accentBlue/20 text-accentBlue rounded-2xl flex items-center justify-center mx-auto mb-6"><i class="ph-fill ph-database text-3xl animate-pulse"></i></div>
+                <h3 class="text-2xl font-bold text-dark mb-2">正在同步云端数据</h3>
+                <p class="text-sm text-gray-500 mb-6">系统正在与 Supabase 进行实时同步您的全量档案...</p>
+                
+                <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden mb-4">
+                    <div id="reg-progress-bar" class="progress-bar-inner"></div>
+                </div>
+                
+                <p id="reg-loading-text" class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">PostgreSQL 数据库连线中...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理 Campus 账号 Modal -->
     <div id="user-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden">
         <div onclick="toggleUserModal(false)" class="absolute inset-0 bg-dark/40 backdrop-blur-sm"></div>
         <div class="relative bg-white w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden p-8 mx-4 transform transition-all duration-300">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold text-dark">切换身份或注册</h3>
-                <button onclick="toggleUserModal(false)" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"><i class="ph ph-x"></i></button>
+                <h3 class="text-xl font-bold text-dark">管理 Campus 账号</h3>
+                <button onclick="toggleUserModal(false)" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"><i class="ph ph-x text-lg"></i></button>
             </div>
-            
-            <button onclick="quickRegister()" id="quick-register-btn" class="w-full mb-4 bg-dark text-white py-3 rounded-2xl text-sm font-bold shadow-md hover:bg-opacity-90 transition flex justify-center items-center gap-2">
-                <i class="ph-bold ph-plus-circle"></i> 一键注册并体验新账号
-            </button>
-
-            <div id="user-list" class="space-y-4 max-h-[50vh] overflow-y-auto no-scrollbar border-t border-gray-100 pt-4"></div>
-            <p class="text-center text-xs text-gray-400 mt-8">CampusLife - 身份验证系统</p>
+            <button onclick="triggerNewRegistration(true)" class="w-full mb-4 bg-dark text-white py-3 rounded-2xl text-sm font-bold shadow-md hover:bg-opacity-90 transition flex justify-center items-center gap-2"><i class="ph-bold ph-plus-circle"></i> 注册 / 绑定新校园身份</button>
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 mt-4">已绑定的云端账号</div>
+            <div id="user-list" class="space-y-4 max-h-[40vh] overflow-y-auto no-scrollbar border-t border-gray-100 pt-4"></div>
+            <p class="text-center text-xs text-gray-400 mt-8">CampusLife - Powered by Supabase</p>
         </div>
     </div>
 
     <script>
-        const isLocal = window.location.protocol === 'file:' || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
-        const API_BASE = isLocal ? "http://127.0.0.1:8000/api" : "/api";
-        let currentUserId = localStorage.getItem('edu_space_user') || 'huang_jiaxi';
-        let newsData = [];
-        let sliderIndex = 0;
-        let sliderTimer = null;
-
-        async function initDashboard() {
-            try {
-                const [userRes, newsRes] = await Promise.all([
-                    fetch(`${API_BASE}/users/${currentUserId}`),
-                    fetch(`${API_BASE}/news`)
-                ]);
-
-                if (!userRes.ok || !newsRes.ok) throw new Error("后端服务连接失败");
-
-                const userData = await userRes.json();
-                newsData = await newsRes.json();
-
-                const greeting = document.getElementById('user-greeting');
-                const avatar = document.getElementById('header-avatar');
-                if (greeting) greeting.textContent = `早安, ${userData.name}!`;
-                if (avatar) avatar.src = userData.avatar;
-
-                if (newsData.length > 0) {
-                    updateSlider(0);
-                    startAutoPlay();
-                }
-
-            } catch (err) {
-                console.error("加载失败:", err);
-                document.getElementById('user-greeting').textContent = "服务不可用";
+        // --- 核心 API 重写：全部对接 Supabase ---
+        const api = {
+            getUsers: async () => {
+                const { data, error } = await window.supabase.from('users').select('*').order('created_at', { ascending: false });
+                if (error) { console.error("获取用户列表失败:", error); return []; }
+                return data || [];
+            },
+            getUser: async (id) => {
+                const { data, error } = await window.supabase.from('users').select('*').eq('student_id', id).single();
+                if (error) { console.error("获取用户详情失败:", error); return null; }
+                return data;
+            },
+            getNews: async () => {
+                const { data, error } = await window.supabase.from('news').select('*').order('created_at', { ascending: false }).limit(6);
+                if (error) { console.error("获取新闻失败:", error); return []; }
+                return data || [];
             }
+        };
+
+        // 当前设备记住的用户 ID (仅仅是个标记，实际数据来自云端)
+        let currentUserId = localStorage.getItem('edu_space_user') || null;
+
+        // --- 注册流程逻辑 ---
+        function triggerNewRegistration(isManual = false) {
+            toggleUserModal(false); 
+            const backBtn = document.getElementById('back-to-list-btn');
+            if (isManual) backBtn.classList.remove('hidden');
+            else backBtn.classList.add('hidden');
+
+            document.getElementById('reg-step-2').classList.add('hidden');
+            document.getElementById('reg-step-3').classList.add('hidden');
+            document.getElementById('reg-step-1').classList.remove('hidden');
+            document.getElementById('new-user-name').value = '';
+            document.getElementById('register-modal').classList.remove('hidden');
         }
 
-        async function quickRegister() {
-            const btn = document.getElementById('quick-register-btn');
-            btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> 正在创建账号...';
+        async function closeRegistrationModal() {
+            document.getElementById('register-modal').classList.add('hidden');
+            const users = await api.getUsers();
+            if(users && users.length > 0) toggleUserModal(true);
+        }
+        
+        async function verifyIdentity() {
+            let userName = document.getElementById('new-user-name').value.trim();
+            if (!userName) { alert("请输入需要核验的真实姓名"); return; }
+            const btn = document.getElementById('reg-verify-btn');
+            btn.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> 系统比对中...'; 
             btn.disabled = true;
 
-            const randomId = 'user_' + Math.floor(Math.random() * 100000);
-            
             try {
-                const res = await fetch(`${API_BASE}/users/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        student_id: randomId,
-                        name: `访客 ${Math.floor(Math.random() * 1000)}`,
-                        avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${randomId}`
-                    })
-                });
-
-                if (res.ok) {
-                    btn.innerHTML = '<i class="ph-bold ph-check-circle text-accentGreen"></i> 创建成功';
-                    btn.classList.add('bg-gray-100', 'text-dark');
-                    setTimeout(() => switchUser(randomId), 1000);
-                } else {
-                    throw new Error("注册失败");
-                }
-            } catch (err) {
-                btn.innerHTML = "注册失败，请重试";
+                let analysis = { gender: '男' };
+                if(window.AIHelper) { analysis = await window.AIHelper.guessGender(userName); }
+                
+                document.getElementById('reg-step-1').classList.add('hidden'); 
+                document.getElementById('reg-step-2').classList.remove('hidden');
+                document.getElementById('confirm-name').value = userName;
+                document.getElementById('confirm-gender').value = analysis.gender === '女' ? '女' : '男';
+                document.getElementById('confirm-id').value = '202' + Math.floor(Math.random()*90000+10000);
+            } catch (e) {
+                alert("网络异常，无法连接教务中心，请重试。");
+            } finally {
+                btn.innerHTML = '<i class="ph-bold ph-identification-badge text-lg"></i> 验证学生身份'; 
                 btn.disabled = false;
             }
         }
 
-        function toggleUserModal(show) {
-            const modal = document.getElementById('user-modal');
-            const modalContent = modal.querySelector('div:last-child');
-            if (show) {
-                renderUserList();
-                document.getElementById('quick-register-btn').innerHTML = '<i class="ph-bold ph-plus-circle"></i> 一键注册并体验新账号';
-                document.getElementById('quick-register-btn').disabled = false;
-                document.getElementById('quick-register-btn').className = "w-full mb-4 bg-dark text-white py-3 rounded-2xl text-sm font-bold shadow-md hover:bg-opacity-90 transition flex justify-center items-center gap-2";
+        async function bindAccountAndGenerate() {
+            const name = document.getElementById('confirm-name').value;
+            const gender = document.getElementById('confirm-gender').value;
+            const id = document.getElementById('confirm-id').value;
 
-                modal.classList.remove('hidden');
+            document.getElementById('reg-step-2').classList.add('hidden'); 
+            document.getElementById('reg-step-3').classList.remove('hidden');
+            
+            const progressBar = document.getElementById('reg-progress-bar');
+            const loadingText = document.getElementById('reg-loading-text');
+
+            let currentProgress = 0;
+            const interval = setInterval(() => {
+                if (currentProgress < 90) {
+                    currentProgress += Math.random() * 2.5;
+                    if (currentProgress > 90) currentProgress = 90;
+                    progressBar.style.width = currentProgress + '%';
+                }
+            }, 400);
+
+            try {
+                let generatedData = null;
+                if(window.AIHelper) {
+                    generatedData = await window.AIHelper.generateStudentData(name, gender, id);
+                } else {
+                    throw new Error("AI 模块未加载");
+                }
+                
+                // === 关键：执行 Supabase 数据库插入 ===
+                const user = generatedData.user;
+                const { error: userErr } = await window.supabase.from('users').insert([user]);
+                if (userErr) throw new Error("写入用户表失败: " + userErr.message);
+
+                const archives = generatedData.archives || {};
+                const { error: archErr } = await window.supabase.from('archives').insert([{
+                    student_id: user.student_id,
+                    academic: archives.academic || [],
+                    health: archives.health || [],
+                    library: archives.library || [],
+                    award: archives.award || archives.awards || [] // 处理不同 prompt 的潜在别名
+                }]);
+                if (archErr) throw new Error("写入档案表失败: " + archErr.message);
+
+                // 如果 AI 生成了新闻，也顺带写入云端新闻表
+                if (generatedData.news && generatedData.news.length > 0) {
+                    await window.supabase.from('news').insert(generatedData.news);
+                }
+                // === 写入完成 ===
+                
+                clearInterval(interval);
+                progressBar.style.width = '100%';
+                loadingText.textContent = "云端数据同步完成！";
+
                 setTimeout(() => {
-                    modalContent.classList.remove('modal-enter');
-                    modalContent.classList.add('modal-enter-active');
-                }, 10);
-            } else {
-                modalContent.classList.remove('modal-enter-active');
-                modalContent.classList.add('modal-enter');
-                setTimeout(() => modal.classList.add('hidden'), 300);
+                    currentUserId = user.student_id; 
+                    localStorage.setItem('edu_space_user', currentUserId);
+                    
+                    document.getElementById('register-modal').classList.add('hidden');
+                    DashboardApp.init();
+                }, 800); 
+            } catch (err) { 
+                console.error(err);
+                clearInterval(interval);
+                loadingText.innerHTML = `<span class='text-accentRed'>${err.message || '数据同步失败，请重试。'}</span>`; 
             }
         }
 
+        // --- 账号切换与管理逻辑 ---
         async function renderUserList() {
             const listContainer = document.getElementById('user-list');
-            listContainer.innerHTML = '<p class="text-center py-4 text-gray-400">同步账户中...</p>';
+            listContainer.innerHTML = '<div class="text-center py-4 text-gray-400 text-sm"><i class="ph ph-spinner animate-spin text-lg"></i> 获取云端账号中...</div>';
             
-            try {
-                const res = await fetch(`${API_BASE}/users`);
-                const users = await res.json();
-                
-                listContainer.innerHTML = '';
-                users.forEach(user => {
-                    const isActive = user.student_id === currentUserId;
-                    const item = document.createElement('div');
-                    item.className = `flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all border-2 ${isActive ? 'bg-accentYellow/10 border-accentYellow' : 'bg-gray-50 border-transparent hover:bg-gray-100'}`;
-                    item.onclick = () => switchUser(user.student_id);
-                    item.innerHTML = `
-                        <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0">
-                            <img src="${user.avatar}" class="w-full h-full object-cover">
-                        </div>
-                        <div class="flex-1">
-                            <div class="font-bold text-dark flex items-center gap-2">${user.name}${isActive ? '<span class="text-[10px] bg-accentYellow text-dark px-1.5 py-0.5 rounded-md font-bold uppercase">当前</span>' : ''}</div>
-                            <div class="text-xs text-gray-500">${user.class_name} · ${user.position}</div>
-                        </div>
-                        <i class="ph ph-caret-right text-gray-400"></i>
-                    `;
-                    listContainer.appendChild(item);
-                });
-            } catch (err) {
-                listContainer.innerHTML = '<p class="text-center text-red-400 text-xs">无法加载账户列表</p>';
+            const users = await api.getUsers();
+            if(users.length === 0) { listContainer.innerHTML = '<p class="text-center py-4 text-gray-400 text-sm">当前暂无账号</p>'; return; }
+            
+            listContainer.innerHTML = users.map(user => {
+                const isActive = user.student_id === currentUserId;
+                return `<div class="flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all border-2 ${isActive ? 'bg-accentYellow/10 border-accentYellow' : 'bg-gray-50 border-transparent hover:bg-gray-100'}" onclick="switchUser('${user.student_id}')">
+                    <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shrink-0"><img src="${user.avatar}" class="w-full h-full object-cover"></div>
+                    <div class="flex-1 text-left">
+                        <div class="font-bold text-dark flex items-center gap-2">${user.name}${isActive ? '<span class="text-[10px] bg-accentYellow text-dark px-1.5 py-0.5 rounded-md font-bold uppercase">当前</span>' : ''}</div>
+                        <div class="text-xs text-gray-500">${user.class_name}</div>
+                    </div>
+                    <button onclick="deleteUser('${user.student_id}', event)" class="w-8 h-8 rounded-full bg-white text-gray-400 hover:text-accentRed hover:bg-red-50 flex items-center justify-center transition-colors shadow-sm" title="彻底删除账号">
+                        <i class="ph-bold ph-trash"></i>
+                    </button>
+                </div>`;
+            }).join('');
+        }
+        
+        function toggleUserModal(show) {
+            const modal = document.getElementById('user-modal'); const content = modal.querySelector('div:last-child');
+            if (show) { renderUserList(); modal.classList.remove('hidden'); setTimeout(() => { content.classList.remove('modal-enter'); content.classList.add('modal-enter-active'); }, 10); }
+            else { content.classList.remove('modal-enter-active'); content.classList.add('modal-enter'); setTimeout(() => modal.classList.add('hidden'), 300); }
+        }
+        
+        function switchUser(userId) { currentUserId = userId; localStorage.setItem('edu_space_user', userId); toggleUserModal(false); DashboardApp.init(); }
+
+        window.deleteUser = async function(userId, event) {
+            event.stopPropagation();
+            if (!confirm('警告：确定要彻底删除该校园账号及所有关联档案吗？数据库中的数据将被永久擦除。')) return;
+
+            // === 真实 Supabase 删除调用 ===
+            const { error } = await window.supabase.from('users').delete().eq('student_id', userId);
+            if (error) {
+                alert("云端删除失败: " + error.message);
+                return;
             }
-        }
 
-        function switchUser(userId) {
-            currentUserId = userId;
-            localStorage.setItem('edu_space_user', userId);
-            toggleUserModal(false);
-            initDashboard();
-        }
-
-        function updateSlider(index) {
-            const content = document.getElementById('headline-content');
-            const circle1 = document.getElementById('news-circle-1');
-            const circle2 = document.getElementById('news-circle-2');
-            const title = document.getElementById('news-title');
-            const desc = document.getElementById('news-desc');
-            const tag = document.getElementById('news-tag');
-            const date = document.getElementById('news-date');
-            
-            if (!content || newsData.length === 0) return;
-
-            content.style.opacity = '0';
-            content.style.transform = 'translateX(-10px)';
-            
-            setTimeout(() => {
-                const data = newsData[index];
-                if (circle1 && circle2) {
-                    circle1.className = circle1.className.replace(/bg-accent\w+/g, '').trim() + ' ' + data.circle_color_1;
-                    circle2.className = circle2.className.replace(/bg-accent\w+/g, '').trim() + ' ' + data.circle_color_2;
+            if (currentUserId === userId) {
+                const users = await api.getUsers();
+                if (users.length > 0) {
+                    switchUser(users[0].student_id);
+                } else {
+                    localStorage.removeItem('edu_space_user');
+                    window.location.reload(); 
                 }
-                if (title) title.innerHTML = data.title;
-                if (desc) desc.textContent = data.desc;
-                if (tag) tag.textContent = data.tag;
-                if (date) date.textContent = data.date;
-                sliderIndex = index;
-                renderIndicators();
-                content.style.opacity = '1';
-                content.style.transform = 'translateX(0)';
-            }, 500);
-        }
+            } else {
+                renderUserList(); 
+            }
+        };
 
-        function renderIndicators() {
-            const container = document.getElementById('news-indicators');
-            if (!container) return;
-            container.innerHTML = '';
-            newsData.forEach((_, index) => {
-                const dot = document.createElement('div');
-                dot.className = `w-2 h-2 rounded-full cursor-pointer transition-all duration-300 ${index === sliderIndex ? 'bg-dark w-6' : 'bg-gray-400'}`;
-                dot.onclick = () => {
-                    clearInterval(sliderTimer);
-                    updateSlider(index);
-                    startAutoPlay();
-                };
-                container.appendChild(dot);
-            });
-        }
+        // --- Dashboard 渲染核心 ---
+        const DashboardApp = {
+            state: { newsData: [], sliderIndex: 0, sliderTimer: null },
+            async init() {
+                if (!currentUserId) return;
+                const userData = await api.getUser(currentUserId);
+                this.state.newsData = await api.getNews();
+                if (userData) {
+                    document.getElementById('user-greeting').textContent = `早安, ${userData.name.split(' ')[0]}!`;
+                    document.getElementById('header-avatar-dashboard').src = userData.avatar;
+                    document.getElementById('star-student-avatar').src = userData.avatar;
+                    document.getElementById('star-student-name').textContent = userData.name;
+                    document.getElementById('star-student-title').textContent = `${userData.class_name} | ${userData.position}`;
+                }
+                if (this.state.newsData && this.state.newsData.length > 0) { 
+                    this.updateSlider(0); 
+                    this.startAutoPlay(); 
+                } else {
+                    document.getElementById('news-title').textContent = '暂无校园资讯';
+                    document.getElementById('news-desc').textContent = '请稍后再来看看吧。';
+                    document.getElementById('news-tag').textContent = '最新动态';
+                }
+            },
+            updateSlider(index) {
+                const content = document.getElementById('headline-content');
+                if (!content || this.state.newsData.length === 0) return;
+                content.style.opacity = '0'; content.style.transform = 'translateX(-10px)';
+                setTimeout(() => {
+                    const data = this.state.newsData[index];
+                    document.getElementById('news-circle-1').className = `absolute top-[-10%] right-[-5%] w-80 h-80 rounded-full filter blur-[80px] opacity-50 transition-all duration-1000 group-hover:scale-110 ${data.circle_color_1 || 'bg-accentRed'}`;
+                    document.getElementById('news-circle-2').className = `absolute bottom-[10%] left-[25%] w-64 h-64 rounded-full filter blur-[80px] opacity-40 transition-all duration-1000 group-hover:scale-110 ${data.circle_color_2 || 'bg-accentYellow'}`;
+                    document.getElementById('news-title').innerHTML = data.title; document.getElementById('news-desc').textContent = data.desc; document.getElementById('news-tag').textContent = data.tag; document.getElementById('news-date').textContent = data.date;
+                    this.state.sliderIndex = index; this.renderIndicators();
+                    content.style.opacity = '1'; content.style.transform = 'translateX(0)';
+                }, 500);
+            },
+            renderIndicators() {
+                document.getElementById('news-indicators').innerHTML = this.state.newsData.map((_, idx) => `<div onclick="DashboardApp.goToSlider(${idx})" class="w-2 h-2 rounded-full cursor-pointer transition-all duration-300 ${idx === this.state.sliderIndex ? 'bg-dark w-6' : 'bg-gray-400'}"></div>`).join('');
+            },
+            goToSlider(idx) { clearInterval(this.state.sliderTimer); this.updateSlider(idx); this.startAutoPlay(); },
+            startAutoPlay() { if (this.state.sliderTimer) clearInterval(this.state.sliderTimer); this.state.sliderTimer = setInterval(() => this.updateSlider((this.state.sliderIndex + 1) % this.state.newsData.length), 5000); }
+        };
 
-        function startAutoPlay() {
-            if (sliderTimer) clearInterval(sliderTimer);
-            sliderTimer = setInterval(() => {
-                updateSlider((sliderIndex + 1) % newsData.length);
-            }, 5000);
-        }
-
-        window.addEventListener('load', initDashboard);
+        // --- 入口初始化逻辑 ---
+        window.onload = async () => {
+            const users = await api.getUsers();
+            
+            // 逻辑：如果云端有该用户数据 且 本地记录了当前用户 -> 直接进入主页
+            if (users && users.length > 0 && currentUserId) {
+                // 确保本地存的 userId 在云端确实存在 (防止云端被清空但本地残留)
+                const isValidUser = users.some(u => u.student_id === currentUserId);
+                if (!isValidUser) {
+                    currentUserId = users[0].student_id;
+                    localStorage.setItem('edu_space_user', currentUserId);
+                }
+                DashboardApp.init();
+            } else {
+                // 否则（新设备或无账号）直接强制呼出教务核验弹窗
+                triggerNewRegistration(false);
+            }
+        };
     </script>
 </body>
 </html>
