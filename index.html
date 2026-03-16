@@ -8,8 +8,7 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
     
-    <!-- 引入核心数据同步接口 -->
-    <script src="ai_helper.js"></script>
+    <!-- 已经彻底移除 ai_helper.js 的引入，完全依赖 EdgeOne API -->
 
     <!-- 引入 Supabase JS SDK 及初始化 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -294,8 +293,15 @@
             btn.disabled = true;
 
             try {
-                let analysis = { gender: '男' };
-                if(window.AIHelper) { analysis = await window.AIHelper.guessGender(userName); }
+                // 修改：向 EdgeOne API 发起真实的请求，替代 AIHelper
+                const response = await fetch('/api/guess-gender', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: userName })
+                });
+                
+                if (!response.ok) throw new Error("API请求失败");
+                const analysis = await response.json();
                 
                 document.getElementById('reg-step-1').classList.add('hidden'); 
                 document.getElementById('reg-step-2').classList.remove('hidden');
@@ -303,7 +309,8 @@
                 document.getElementById('confirm-gender').value = analysis.gender === '女' ? '女' : '男';
                 document.getElementById('confirm-id').value = '202' + Math.floor(Math.random()*90000+10000);
             } catch (e) {
-                alert("网络异常，无法连接教务中心，请重试。");
+                alert("网络异常或服务端报错，请检查EdgeOne配置重试。");
+                console.error(e);
             } finally {
                 btn.innerHTML = '<i class="ph-bold ph-identification-badge text-lg"></i> 验证学生身份'; 
                 btn.disabled = false;
@@ -331,12 +338,15 @@
             }, 400);
 
             try {
-                let generatedData = null;
-                if(window.AIHelper) {
-                    generatedData = await window.AIHelper.generateStudentData(name, gender, id);
-                } else {
-                    throw new Error("AI 模块未加载");
-                }
+                // 修改：向 EdgeOne API 发起真实的数据生成请求，替代 AIHelper
+                const response = await fetch('/api/generate-student', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, gender: gender, studentId: id })
+                });
+
+                if (!response.ok) throw new Error("生成数据失败，请检查 EdgeOne 服务");
+                const generatedData = await response.json();
                 
                 // === 关键：执行 Supabase 数据库插入 ===
                 const user = generatedData.user;
