@@ -51,11 +51,6 @@
                         <input type="text" placeholder="搜索新闻、活动或公告..." class="bg-transparent border-none outline-none text-sm w-full placeholder-gray-400">
                     </div>
                     
-                    <!-- 关键修改：触发 AI 新闻生成的按钮 -->
-                    <button id="generate-news-btn" onclick="triggerGenerateNews()" class="bg-dark text-white px-8 py-3 rounded-full text-sm font-medium hover:bg-opacity-90 transition shadow-lg whitespace-nowrap flex items-center gap-2">
-                        <i class="ph-bold ph-magic-wand"></i> AI 生成新闻
-                    </button>
-                    
                     <div onclick="toggleUserModal(true)" class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm cursor-pointer hover:ring-4 hover:ring-accentYellow/30 transition-all active:scale-95" title="管理 Campus 账号">
                         <img id="header-avatar-dashboard" src="" alt="Profile" class="w-full h-full object-cover">
                     </div>
@@ -250,45 +245,6 @@
 
         let currentUserId = localStorage.getItem('edu_space_user') || null;
 
-        // --- AI 自动生成新闻逻辑 ---
-        async function triggerGenerateNews() {
-            const topic = prompt("请简要输入新闻主题 (例如：春季运动会、期末考试、社团招新等)：", "校园日常动态");
-            if (topic === null || topic.trim() === '') return;
-
-            const btn = document.getElementById('generate-news-btn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> AI 撰稿中...';
-            btn.disabled = true;
-
-            try {
-                // 必须通过 EdgeOne Pages 部署后调用此边缘路由
-                const response = await fetch('/api/generate-news', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ topic: topic })
-                });
-
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const newsItem = await response.json();
-
-                if (newsItem.error) throw new Error(newsItem.error);
-
-                // 写入到 Supabase 的 news 表
-                const { error: insertErr } = await window.supabase.from('news').insert([newsItem]);
-                if (insertErr) throw insertErr;
-
-                // 成功后重新拉取新闻并渲染轮播图
-                DashboardApp.init();
-
-            } catch (err) {
-                alert(`AI 生成新闻失败: ${err.message}\n请确保您已通过 EdgeOne Pages Dev CLI 测试或已部署至线上。`);
-                console.error("News Generation Error:", err);
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
-        }
-
         // --- 注册流程逻辑 ---
         function triggerNewRegistration(isManual = false) {
             toggleUserModal(false); 
@@ -480,7 +436,7 @@
                     this.startAutoPlay(); 
                 } else {
                     document.getElementById('news-title').textContent = '暂无校园资讯';
-                    document.getElementById('news-desc').textContent = '点击右上角的"AI 生成新闻"试试吧！';
+                    document.getElementById('news-desc').textContent = '今日的校园新闻还在后台赶稿中，请稍后再来！';
                     document.getElementById('news-tag').textContent = '最新动态';
                 }
             },
