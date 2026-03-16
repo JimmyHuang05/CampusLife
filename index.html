@@ -59,6 +59,7 @@
                         <input type="text" placeholder="搜索新闻、活动或公告..." class="bg-transparent border-none outline-none text-sm w-full placeholder-gray-400">
                     </div>
                     <button class="bg-dark text-white px-8 py-3 rounded-full text-sm font-medium hover:bg-opacity-90 transition shadow-lg whitespace-nowrap">我要投稿</button>
+                    
                     <div onclick="toggleUserModal(true)" class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm cursor-pointer hover:ring-4 hover:ring-accentYellow/30 transition-all active:scale-95" title="管理 Campus 账号">
                         <img id="header-avatar-dashboard" src="" alt="Profile" class="w-full h-full object-cover">
                     </div>
@@ -173,54 +174,52 @@
         
         <div class="relative bg-white w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden p-8 mx-4 text-center transform transition-all duration-300">
             
-            <!-- 第一步：姓名验证 -->
+            <!-- 第一步：邮箱输入 -->
             <div id="reg-step-1">
-                <div class="w-16 h-16 bg-accentYellow/20 text-accentYellow rounded-2xl flex items-center justify-center mx-auto mb-6"><i class="ph-fill ph-sparkle text-3xl"></i></div>
-                <h3 class="text-2xl font-bold text-dark mb-2">校园身份档案核验</h3>
-                <p class="text-sm text-gray-500 mb-8">初次注册本站，请输入您的真实姓名进行教务系统身份核验。</p>
-                <input type="text" id="new-user-name" placeholder="请输入姓名 (例如: 李华)" class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 mb-4 focus:ring-2 focus:ring-accentYellow outline-none text-center font-bold text-dark">
-                <button onclick="verifyIdentity()" id="reg-verify-btn" class="w-full bg-dark text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-opacity-90 transition flex justify-center items-center gap-2"><i class="ph-bold ph-identification-badge text-lg"></i> 验证学生身份</button>
+                <div class="w-16 h-16 bg-accentYellow/20 text-accentYellow rounded-2xl flex items-center justify-center mx-auto mb-6"><i class="ph-fill ph-envelope-simple text-3xl"></i></div>
+                <h3 class="text-2xl font-bold text-dark mb-2">注册校园账号</h3>
+                <p class="text-sm text-gray-500 mb-8">初次访问本站，请输入您的常用邮箱进行注册。</p>
+                <input type="email" id="new-user-email" placeholder="请输入邮箱 (例如: student@edu.cn)" class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 mb-4 focus:ring-2 focus:ring-accentYellow outline-none text-center font-bold text-dark">
+                <button onclick="verifyEmail()" id="reg-verify-btn" class="w-full bg-dark text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-opacity-90 transition flex justify-center items-center gap-2">下一步 <i class="ph-bold ph-arrow-right text-lg"></i></button>
                 
                 <!-- 只有手动注册才会显示该按钮 -->
                 <button id="back-to-list-btn" onclick="closeRegistrationModal()" class="mt-4 text-xs text-gray-400 hover:text-dark hidden">返回账号列表</button>
             </div>
 
-            <!-- 第二步：识别确认 -->
+            <!-- 第二步：个人信息 -->
             <div id="reg-step-2" class="hidden text-left">
                 <div class="flex items-center gap-3 mb-6">
-                    <div class="w-10 h-10 bg-accentGreen/20 text-accentGreen rounded-full flex items-center justify-center shrink-0"><i class="ph-bold ph-check text-xl"></i></div>
-                    <div><h3 class="text-xl font-bold text-dark">找到匹配的档案痕迹</h3><p class="text-xs text-gray-500">请核实系统自动识别的以下属性并确认绑定。</p></div>
+                    <div class="w-10 h-10 bg-accentGreen/20 text-accentGreen rounded-full flex items-center justify-center shrink-0"><i class="ph-bold ph-user text-xl"></i></div>
+                    <div><h3 class="text-xl font-bold text-dark">完善个人档案</h3><p class="text-xs text-gray-500">请输入您的真实姓名、班级和学号以便建档。</p></div>
                 </div>
                 <div class="space-y-4 mb-8">
                     <div>
-                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">核验姓名</label>
-                        <input type="text" id="confirm-name" readonly class="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 px-4 outline-none text-dark font-bold">
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">真实姓名</label>
+                        <input type="text" id="info-name" placeholder="例如：李华" class="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 px-4 outline-none text-dark font-bold focus:border-accentYellow focus:bg-white transition-colors">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">识别性别 (可勘误)</label>
-                        <select id="confirm-gender" class="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 outline-none text-dark font-bold focus:border-accentYellow">
-                            <option value="男">男</option><option value="女">女</option>
-                        </select>
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">所在班级</label>
+                        <input type="text" id="info-class" placeholder="例如：高二(3)班" class="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 px-4 outline-none text-dark font-bold focus:border-accentYellow focus:bg-white transition-colors">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">分配学号</label>
-                        <input type="text" id="confirm-id" class="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 outline-none text-dark font-bold focus:border-accentYellow">
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">学号</label>
+                        <input type="text" id="info-id" placeholder="例如：2024001" class="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 px-4 outline-none text-dark font-bold focus:border-accentYellow focus:bg-white transition-colors">
                     </div>
                 </div>
-                <button onclick="bindAccountAndGenerate()" id="reg-generate-btn" class="w-full bg-dark text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-opacity-90 transition flex justify-center items-center gap-2">确认绑定并同步云端数据</button>
+                <button onclick="createAccount()" id="reg-generate-btn" class="w-full bg-dark text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-opacity-90 transition flex justify-center items-center gap-2">创建账号并进入</button>
             </div>
 
             <!-- 第三步：单色进度条同步 -->
             <div id="reg-step-3" class="hidden">
                 <div class="w-16 h-16 bg-accentBlue/20 text-accentBlue rounded-2xl flex items-center justify-center mx-auto mb-6"><i class="ph-fill ph-database text-3xl animate-pulse"></i></div>
-                <h3 class="text-2xl font-bold text-dark mb-2">正在同步云端数据</h3>
-                <p class="text-sm text-gray-500 mb-6">系统正在与 Supabase 进行实时同步您的全量档案...</p>
+                <h3 class="text-2xl font-bold text-dark mb-2">正在初始化空白档案</h3>
+                <p class="text-sm text-gray-500 mb-6">系统正在为您创建初始账号，各项记录将在您后续使用中逐步生成...</p>
                 
                 <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden mb-4">
                     <div id="reg-progress-bar" class="progress-bar-inner"></div>
                 </div>
                 
-                <p id="reg-loading-text" class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">PostgreSQL 数据库连线中...</p>
+                <p id="reg-loading-text" class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">云端数据库连线中...</p>
             </div>
         </div>
     </div>
@@ -241,11 +240,6 @@
     </div>
 
     <script>
-        // === 关键修改：在这里配置您的 EdgeOne 云函数域名 ===
-        // 如果您在本地测试（双击 HTML 打开），必须填入完整的 EdgeOne 域名，例如 'https://campuslife.edgeone.dev'
-        // 如果您已将此 HTML 部署到了 EdgeOne 上，保持为空字符串即可
-        const API_BASE = 'https://campuslife.edgeone.dev/'; // 替换为您的 EdgeOne 域名
-
         // --- 核心 API 重写：全部对接 Supabase ---
         const api = {
             getUsers: async () => {
@@ -278,7 +272,10 @@
             document.getElementById('reg-step-2').classList.add('hidden');
             document.getElementById('reg-step-3').classList.add('hidden');
             document.getElementById('reg-step-1').classList.remove('hidden');
-            document.getElementById('new-user-name').value = '';
+            document.getElementById('new-user-email').value = '';
+            document.getElementById('info-name').value = '';
+            document.getElementById('info-class').value = '';
+            document.getElementById('info-id').value = '';
             document.getElementById('register-modal').classList.remove('hidden');
         }
 
@@ -288,95 +285,89 @@
             if(users && users.length > 0) toggleUserModal(true);
         }
         
-        async function verifyIdentity() {
-            let userName = document.getElementById('new-user-name').value.trim();
-            if (!userName) { alert("请输入需要核验的真实姓名"); return; }
+        async function verifyEmail() {
+            let email = document.getElementById('new-user-email').value.trim();
+            if (!email || !email.includes('@')) { alert("请输入有效的邮箱地址"); return; }
+            
             const btn = document.getElementById('reg-verify-btn');
-            btn.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> 系统比对中...'; 
+            btn.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> 处理中...'; 
             btn.disabled = true;
 
             try {
-                // 使用 API_BASE 处理可能跨域的云端请求
-                const response = await fetch(API_BASE + '/api/guess-gender', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: userName })
-                });
-                
-                if (!response.ok) throw new Error(`HTTP 状态码: ${response.status}`);
-                const analysis = await response.json();
+                // 极短的过渡动画
+                await new Promise(resolve => setTimeout(resolve, 300));
                 
                 document.getElementById('reg-step-1').classList.add('hidden'); 
                 document.getElementById('reg-step-2').classList.remove('hidden');
-                document.getElementById('confirm-name').value = userName;
-                document.getElementById('confirm-gender').value = analysis.gender === '女' ? '女' : '男';
-                document.getElementById('confirm-id').value = '202' + Math.floor(Math.random()*90000+10000);
-            } catch (e) {
-                alert(`网络异常或服务端报错：${e.message}\n请检查控制台(F12)的网络请求，确认EdgeOne配置。`);
-                console.error("Fetch 请求失败细节:", e);
+                
+                // 自动分配一个默认学号建议，用户可自行修改
+                document.getElementById('info-id').value = '202' + Math.floor(Math.random()*90000+10000);
             } finally {
-                btn.innerHTML = '<i class="ph-bold ph-identification-badge text-lg"></i> 验证学生身份'; 
+                btn.innerHTML = '下一步 <i class="ph-bold ph-arrow-right text-lg"></i>'; 
                 btn.disabled = false;
             }
         }
 
-        async function bindAccountAndGenerate() {
-            const name = document.getElementById('confirm-name').value;
-            const gender = document.getElementById('confirm-gender').value;
-            const id = document.getElementById('confirm-id').value;
+        async function createAccount() {
+            const email = document.getElementById('new-user-email').value.trim();
+            const name = document.getElementById('info-name').value.trim();
+            const className = document.getElementById('info-class').value.trim();
+            const id = document.getElementById('info-id').value.trim();
+
+            if (!name || !className || !id) {
+                alert("请完整填写姓名、班级和学号");
+                return;
+            }
 
             document.getElementById('reg-step-2').classList.add('hidden'); 
             document.getElementById('reg-step-3').classList.remove('hidden');
             
             const progressBar = document.getElementById('reg-progress-bar');
             const loadingText = document.getElementById('reg-loading-text');
+            loadingText.textContent = "正在写入云端数据库...";
 
             let currentProgress = 0;
             const interval = setInterval(() => {
                 if (currentProgress < 90) {
-                    currentProgress += Math.random() * 2.5;
+                    currentProgress += Math.random() * 5;
                     if (currentProgress > 90) currentProgress = 90;
                     progressBar.style.width = currentProgress + '%';
                 }
-            }, 400);
+            }, 100);
 
             try {
-                // 使用 API_BASE 处理可能跨域的云端请求
-                const response = await fetch(API_BASE + '/api/generate-student', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name, gender: gender, studentId: id })
-                });
+                // 构建全空初始状态数据
+                const user = {
+                    student_id: id,
+                    real_id: email, // 将注册邮箱存入该字段
+                    name: name,
+                    class_name: className,
+                    gender: "未设置",
+                    ethnicity: "未设置",
+                    position: "学生",
+                    enrollment: new Date().getFullYear() + "年9月",
+                    politics: "群众",
+                    avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${id}`
+                };
 
-                if (!response.ok) throw new Error(`生成数据失败，HTTP状态码: ${response.status}`);
-                const generatedData = await response.json();
-                
-                if (generatedData.error) throw new Error(generatedData.error);
+                const archives = {
+                    student_id: id,
+                    academic: [],
+                    health: [],
+                    library: [],
+                    award: []
+                };
 
-                // === 关键：执行 Supabase 数据库插入 ===
-                const user = generatedData.user;
+                // === 执行 Supabase 数据库插入 ===
                 const { error: userErr } = await window.supabase.from('users').insert([user]);
                 if (userErr) throw new Error("写入用户表失败: " + userErr.message);
 
-                const archives = generatedData.archives || {};
-                const { error: archErr } = await window.supabase.from('archives').insert([{
-                    student_id: user.student_id,
-                    academic: archives.academic || [],
-                    health: archives.health || [],
-                    library: archives.library || [],
-                    award: archives.award || archives.awards || [] // 处理不同 prompt 的潜在别名
-                }]);
-                if (archErr) throw new Error("写入档案表失败: " + archErr.message);
-
-                // 如果 AI 生成了新闻，也顺带写入云端新闻表
-                if (generatedData.news && generatedData.news.length > 0) {
-                    await window.supabase.from('news').insert(generatedData.news);
-                }
-                // === 写入完成 ===
+                const { error: archErr } = await window.supabase.from('archives').insert([archives]);
+                if (archErr) throw new Error("初始化档案失败: " + archErr.message);
                 
                 clearInterval(interval);
                 progressBar.style.width = '100%';
-                loadingText.textContent = "云端数据同步完成！";
+                loadingText.textContent = "初始化完成！";
 
                 setTimeout(() => {
                     currentUserId = user.student_id; 
@@ -386,9 +377,9 @@
                     DashboardApp.init();
                 }, 800); 
             } catch (err) { 
-                console.error("绑定失败报错:", err);
+                console.error("创建失败报错:", err);
                 clearInterval(interval);
-                loadingText.innerHTML = `<span class='text-accentRed'>数据同步失败：${err.message || '网络异常'}</span>`; 
+                loadingText.innerHTML = `<span class='text-accentRed'>创建失败：${err.message}</span>`; 
             }
         }
 
