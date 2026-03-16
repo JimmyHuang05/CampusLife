@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="no-scrollbar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusLife - 统一身份认证</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const _supabaseUrl = 'https://rrkyvgexkadfkucokmyv.supabase.co';
+        const _supabaseKey = 'sb_publishable_K1G2kk2BaS42t9IYQC3Nkw_v8n-H4ef';
+        window.supabase = supabase.createClient(_supabaseUrl, _supabaseKey);
+    </script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { bg: '#F3F0EA', dark: '#1A1B1F', accentYellow: '#FFD646' } } }
+        }
+    </script>
+</head>
+<body class="bg-bg min-h-screen text-dark flex items-center justify-center font-sans">
+
+    <div class="w-full max-w-md bg-white rounded-[32px] shadow-2xl overflow-hidden mx-4">
+        
+        <!-- 顶层身份切换: 学生端 vs 教师端 -->
+        <div class="flex bg-gray-50 border-b border-gray-200">
+            <button id="role-student" onclick="switchRole('student')" class="flex-1 py-4 text-center font-bold text-dark bg-white border-t-4 border-accentYellow transition-all">🎓 学生端</button>
+            <button id="role-teacher" onclick="switchRole('teacher')" class="flex-1 py-4 text-center font-bold text-gray-400 border-t-4 border-transparent transition-all">👨‍🏫 教师端</button>
+        </div>
+
+        <!-- 学生端面板 -->
+        <div id="panel-student" class="p-8">
+            <div class="flex border-b border-gray-100 mb-6">
+                <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 pb-3 text-center font-bold text-dark border-b-2 border-dark">登录</button>
+                <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 pb-3 text-center font-bold text-gray-400 border-b-2 border-transparent">注册</button>
+            </div>
+
+            <!-- 学生登录 -->
+            <div id="form-login" class="space-y-4">
+                <input type="text" id="login-account" placeholder="姓名或邮箱" class="w-full bg-gray-50 rounded-xl py-3 px-4 outline-none font-bold focus:ring-2 focus:ring-accentYellow">
+                <input type="password" id="login-password" placeholder="密码" class="w-full bg-gray-50 rounded-xl py-3 px-4 outline-none font-bold focus:ring-2 focus:ring-accentYellow" onkeypress="if(event.key === 'Enter') handleLogin()">
+                <button onclick="handleLogin()" id="btn-login" class="w-full bg-dark text-white py-4 rounded-2xl font-bold hover:bg-opacity-90 transition">登录校园系统</button>
+            </div>
+
+            <!-- 学生注册 -->
+            <div id="form-register" class="space-y-4 hidden">
+                <div class="bg-yellow-50 text-yellow-600 text-[11px] p-3 rounded-xl">提示：快捷注册暂无需验证邮箱，但如图书借阅等核心交互将要求验证邮箱方可使用。</div>
+                <input type="email" id="reg-email" placeholder="注册邮箱" class="w-full bg-gray-50 rounded-xl py-3 px-4 outline-none font-bold focus:ring-2 focus:ring-accentYellow">
+                <input type="password" id="reg-password" placeholder="设置密码 (最少4位)" class="w-full bg-gray-50 rounded-xl py-3 px-4 outline-none font-bold focus:ring-2 focus:ring-accentYellow">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" id="reg-name" placeholder="真实姓名 (全汉字)" class="w-full bg-gray-50 rounded-xl py-3 px-4 outline-none font-bold focus:ring-2 focus:ring-accentYellow">
+                    <select id="reg-gender" class="w-full bg-gray-50 rounded-xl py-3 px-4 outline-none font-bold focus:ring-2 focus:ring-accentYellow">
+                        <option value="" disabled selected>选择性别</option><option value="男">男</option><option value="女">女</option><option value="其他">其他</option>
+                    </select>
+                </div>
+                <input type="text" id="reg-id" placeholder="8位学籍号 (如 20240524)" class="w-full bg-gray-50 rounded-xl py-3 px-4 outline-none font-bold focus:ring-2 focus:ring-accentYellow">
+                <button onclick="handleRegister()" id="btn-register" class="w-full bg-dark text-white py-4 rounded-2xl font-bold hover:bg-opacity-90 transition">创建账号并进入</button>
+            </div>
+        </div>
+
+        <!-- 教师端面板 -->
+        <div id="panel-teacher" class="p-8 hidden">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3"><i class="ph-fill ph-chalkboard-teacher text-3xl"></i></div>
+                <h3 class="font-bold text-xl">教务管理通道</h3>
+                <p class="text-xs text-gray-400 mt-1">演示账号: admin / 密码: admin</p>
+            </div>
+            <div class="space-y-4">
+                <input type="text" id="t-account" placeholder="教务工号" class="w-full bg-gray-50 rounded-xl py-3 px-4 outline-none font-bold focus:ring-2 focus:ring-blue-400">
+                <input type="password" id="t-password" placeholder="密码" class="w-full bg-gray-50 rounded-xl py-3 px-4 outline-none font-bold focus:ring-2 focus:ring-blue-400">
+                <button onclick="handleTeacherLogin()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition shadow-lg">进入教师工作台</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchRole(role) {
+            const isStudent = role === 'student';
+            document.getElementById('role-student').className = `flex-1 py-4 text-center font-bold transition-all ${isStudent ? 'text-dark bg-white border-t-4 border-accentYellow' : 'text-gray-400 bg-gray-50 border-t-4 border-transparent'}`;
+            document.getElementById('role-teacher').className = `flex-1 py-4 text-center font-bold transition-all ${!isStudent ? 'text-blue-600 bg-white border-t-4 border-blue-500' : 'text-gray-400 bg-gray-50 border-t-4 border-transparent'}`;
+            document.getElementById('panel-student').classList.toggle('hidden', !isStudent);
+            document.getElementById('panel-teacher').classList.toggle('hidden', isStudent);
+        }
+
+        function switchAuthTab(tab) {
+            const isLogin = tab === 'login';
+            document.getElementById('tab-login').className = `flex-1 pb-3 text-center font-bold ${isLogin ? 'text-dark border-b-2 border-dark' : 'text-gray-400 border-b-2 border-transparent'}`;
+            document.getElementById('tab-register').className = `flex-1 pb-3 text-center font-bold ${!isLogin ? 'text-dark border-b-2 border-dark' : 'text-gray-400 border-b-2 border-transparent'}`;
+            document.getElementById('form-login').classList.toggle('hidden', !isLogin);
+            document.getElementById('form-register').classList.toggle('hidden', isLogin);
+        }
+
+        async function handleLogin() {
+            const acc = document.getElementById('login-account').value.trim();
+            const pw = document.getElementById('login-password').value.trim();
+            if (!acc || !pw) return alert("请输入账号和密码");
+            const btn = document.getElementById('btn-login'); btn.innerHTML = '验证中...'; btn.disabled = true;
+            try {
+                const { data, error } = await window.supabase.from('users').select('*').or(`real_id.eq."${acc}",name.eq."${acc}"`).eq('password', pw).single();
+                if (error || !data) throw new Error("账号或密码错误");
+                localStorage.setItem('edu_space_user', data.student_id);
+                localStorage.setItem('edu_space_role', 'student');
+                window.location.href = 'index.html';
+            } catch (err) { alert(err.message); } finally { btn.innerHTML = '登录校园系统'; btn.disabled = false; }
+        }
+
+        async function handleRegister() {
+            const email = document.getElementById('reg-email').value.trim(), pass = document.getElementById('reg-password').value.trim();
+            const name = document.getElementById('reg-name').value.trim(), gender = document.getElementById('reg-gender').value, id = document.getElementById('reg-id').value.trim();
+            if (!email || !email.includes('@')) return alert("请输入有效的邮箱");
+            if (!pass || pass.length < 4) return alert("密码至少4位");
+            if (!name || !gender || !id) return alert("请完整填写表单");
+            
+            if (!/^[\u4e00-\u9fa5]+$/.test(name)) return alert("注册失败：姓名必须为纯汉字");
+            if (!/^\d{8}$/.test(id)) return alert("注册失败：学籍号格式错误，应为8位数字 (如: 20240524)");
+            
+            const admissionYear = parseInt(id.substring(0, 4), 10);
+            const classNum = parseInt(id.substring(4, 6), 10);
+            const currentYear = new Date().getFullYear();
+            
+            if (admissionYear <= currentYear - 3) return alert(`无法注册：${admissionYear}届学生已毕业 (高中时长为三年)`);
+            if (admissionYear > currentYear) return alert(`无法注册：无效的入学年份 (${admissionYear})`);
+            
+            const className = `${admissionYear}届${classNum}班`;
+            const btn = document.getElementById('btn-register'); btn.innerHTML = '创建中...'; btn.disabled = true;
+
+            try {
+                const { data: existId } = await window.supabase.from('users').select('student_id').eq('student_id', id).single();
+                if (existId) throw new Error("学籍号已被占用");
+                
+                const user = { student_id: id, real_id: email, password: pass, name: name, gender: gender, class_name: className, position: "学生", enrollment: admissionYear + "年9月", politics: "群众", avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${id}` };
+                await window.supabase.from('users').insert([user]);
+                await window.supabase.from('archives').insert([{ student_id: id }]);
+                
+                localStorage.setItem('edu_space_user', id);
+                localStorage.setItem('edu_space_role', 'student');
+                window.location.href = 'index.html';
+            } catch (err) { alert(`注册失败：${err.message}`); } finally { btn.innerHTML = '创建账号并进入'; btn.disabled = false; }
+        }
+
+        function handleTeacherLogin() {
+            const acc = document.getElementById('t-account').value;
+            const pw = document.getElementById('t-password').value;
+            // 演示用硬编码教师密码
+            if (acc === 'admin' && pw === 'admin') {
+                localStorage.setItem('edu_space_role', 'teacher');
+                window.location.href = 'teacher.html';
+            } else {
+                alert("教务工号或密码错误！演示账号密码均为 admin");
+            }
+        }
+    </script>
+</body>
+</html>

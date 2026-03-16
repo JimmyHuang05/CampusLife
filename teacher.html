@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教务管理后台 - CampusLife</title>
+    <!-- 不引入全局 tailwind.config，采用任意值保持样式隔离且视觉一致 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        const _supabaseUrl = 'https://rrkyvgexkadfkucokmyv.supabase.co';
+        const _supabaseKey = 'sb_publishable_K1G2kk2BaS42t9IYQC3Nkw_v8n-H4ef';
+        window.supabase = supabase.createClient(_supabaseUrl, _supabaseKey);
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none !important; }
+        html { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        .tab-btn.active { border-bottom: 2px solid #A0C4FF; color: #1A1B1F; font-weight: bold; }
+        .custom-scrollbar::-webkit-scrollbar { display: block !important; width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-[#F3F0EA] min-h-screen text-[#1A1B1F] font-sans selection:bg-[#FFD646]">
+
+    <div class="max-w-[85%] mx-auto py-8 h-screen flex flex-col">
+        <!-- 头部导航 -->
+        <header class="flex justify-between items-center mb-8 shrink-0">
+            <h1 class="text-3xl font-bold flex items-center gap-3">
+                <i class="ph-fill ph-chalkboard-teacher text-[#A0C4FF]"></i> 教务管理中心
+            </h1>
+            <div class="flex items-center gap-4">
+                <span class="text-sm font-bold text-gray-500">管理员 (Admin)</span>
+                <button onclick="logout()" class="px-6 py-2.5 bg-white rounded-full shadow-sm text-sm font-bold text-[#FF6B6B] hover:scale-105 transition-transform">退出登录</button>
+            </div>
+        </header>
+
+        <!-- 主操作区 -->
+        <main class="flex-1 grid grid-cols-12 gap-8 overflow-hidden pb-8">
+            <!-- 左侧：导航与学生列表 -->
+            <div class="col-span-3 bg-[#FDFBF7] rounded-[32px] shadow-sm border border-gray-100 p-6 flex flex-col h-full">
+                <div class="space-y-2 mb-6 border-b border-gray-100 pb-6 shrink-0">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-2">系统模块</p>
+                    <button onclick="switchMainTab('student')" id="nav-student" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#1A1B1F] text-white font-bold transition-all text-left">
+                        <i class="ph-bold ph-users text-lg"></i> 学生档案下发
+                    </button>
+                    <button onclick="switchMainTab('portal')" id="nav-portal" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-transparent text-gray-500 hover:bg-gray-100 font-bold transition-all text-left">
+                        <i class="ph-bold ph-layout text-lg"></i> 门户系统控制
+                    </button>
+                </div>
+
+                <div id="student-list-container" class="flex flex-col flex-1 overflow-hidden">
+                    <div class="relative mb-4 shrink-0">
+                        <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="search-student" placeholder="搜索姓名或学号..." class="w-full bg-gray-50 border border-gray-100 rounded-xl pl-10 pr-4 py-2.5 text-sm font-bold outline-none focus:border-[#A0C4FF] transition-all" oninput="filterUsers()">
+                    </div>
+                    <!-- 分类展示的学生列表 -->
+                    <div id="user-list" class="flex-1 overflow-y-auto custom-scrollbar pr-2 pb-6">
+                        <div class="text-center text-gray-400 py-10 text-xs font-bold">获取中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：详情面板 -->
+            <div class="col-span-9 bg-[#FDFBF7] rounded-[32px] shadow-sm border border-gray-100 flex flex-col h-full overflow-hidden">
+                
+                <!-- 1. 学生档案视图 -->
+                <div id="view-student" class="flex flex-col h-full hidden">
+                    <div id="student-header" class="p-8 border-b border-gray-100 bg-white flex justify-between items-center hidden shrink-0">
+                        <div class="flex items-center gap-4">
+                            <img id="cur-avatar" src="" class="w-14 h-14 rounded-full border border-gray-100 object-cover">
+                            <div><h3 class="text-2xl font-bold" id="cur-name">---</h3><p class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1" id="cur-info">学号: ---</p></div>
+                        </div>
+                    </div>
+                    <div id="student-empty" class="flex-1 flex flex-col items-center justify-center text-gray-400 p-8 text-center">
+                        <i class="ph-duotone ph-student text-5xl mb-4 text-gray-300"></i><p class="font-bold">请在左侧选择一位学生进行操作</p>
+                    </div>
+                    
+                    <div id="student-content" class="flex flex-col flex-1 overflow-hidden hidden">
+                        <div class="flex px-8 border-b border-gray-100 gap-8 text-sm text-gray-400 font-bold shrink-0">
+                            <button class="tab-btn active pb-4 pt-6 transition-all" onclick="switchDataTab('academic')">学术成绩</button>
+                            <button class="tab-btn pb-4 pt-6 transition-all" onclick="switchDataTab('health')">体质健康</button>
+                            <button class="tab-btn pb-4 pt-6 transition-all" onclick="switchDataTab('award')">荣誉奖惩</button>
+                            <button class="tab-btn pb-4 pt-6 transition-all" onclick="switchDataTab('library')">借阅管理</button>
+                        </div>
+                        <div class="flex-1 p-8 overflow-y-auto custom-scrollbar relative">
+                            <button onclick="openModal(-1)" class="mb-6 px-6 py-3 bg-[#1A1B1F] text-white rounded-2xl font-bold text-sm shadow-md hover:bg-opacity-90 flex items-center gap-2 transition-all">
+                                <i class="ph-bold ph-plus"></i> <span id="btn-add-text">新增记录</span>
+                            </button>
+                            <div id="records-list" class="space-y-4 pb-12"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 门户控制视图 -->
+                <div id="view-portal" class="flex flex-col h-full p-8 overflow-y-auto custom-scrollbar hidden space-y-8">
+                    <!-- 模范学生管理 -->
+                    <div class="bg-white border border-gray-100 rounded-[24px] p-8 shadow-sm">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold flex items-center gap-2"><i class="ph-fill ph-star text-[#FFD646]"></i> 模范榜样轮播管理</h3>
+                            <button onclick="openPortalModal('star')" class="px-5 py-2.5 bg-[#1A1B1F] text-white rounded-xl text-xs font-bold shadow-sm hover:scale-105 transition-transform flex items-center gap-2"><i class="ph-bold ph-plus"></i> 添加模范预设</button>
+                        </div>
+                        <!-- 模范轮播列表 -->
+                        <div id="p-star-list" class="space-y-3">
+                            <div class="text-center text-gray-400 py-6 text-xs font-bold">获取中...</div>
+                        </div>
+                    </div>
+
+                    <!-- 新闻管理 -->
+                    <div class="bg-white border border-gray-100 rounded-[24px] p-8 shadow-sm">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold flex items-center gap-2"><i class="ph-fill ph-newspaper text-[#A0C4FF]"></i> 新闻动态列表 (长方形模块)</h3>
+                            <button onclick="openPortalModal('news')" class="px-5 py-2.5 bg-[#1A1B1F] text-white rounded-xl text-xs font-bold shadow-sm hover:scale-105 transition-transform flex items-center gap-2"><i class="ph-bold ph-paper-plane-right"></i> 推送API新闻</button>
+                        </div>
+                        <div id="p-news-list" class="space-y-3">
+                            <div class="text-center text-gray-400 py-6 text-xs font-bold">加载中...</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- 通用编辑弹窗 (Modal) -->
+    <div id="modal-overlay" class="fixed inset-0 z-[500] bg-[#1A1B1F]/40 backdrop-blur-sm flex items-center justify-center hidden">
+        <div class="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl p-8 transform transition-all max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-6 shrink-0">
+                <h3 class="text-2xl font-bold" id="modal-title">编辑数据</h3>
+                <button onclick="closeModal()" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><i class="ph-bold ph-x"></i></button>
+            </div>
+            <div id="modal-body" class="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar"></div>
+            <div class="mt-8 pt-6 border-t border-gray-100 shrink-0">
+                <button id="modal-save" class="w-full bg-[#1A1B1F] text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-opacity-90 transition">保存至云端</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        if(localStorage.getItem('edu_space_role') !== 'teacher') window.location.href = 'login.html';
+        function logout() { localStorage.removeItem('edu_space_role'); window.location.href = 'login.html'; }
+
+        // --- 应用状态与核心逻辑 ---
+        const App = {
+            users: [],
+            activeStudent: null,
+            activeTab: 'academic',
+            records: [],
+            editingIndex: -1,
+            apiNews: [],
+            starStudents: []
+        };
+
+        async function init() {
+            switchMainTab('student');
+            await loadUsers();
+            fetchApiNews();
+        }
+
+        // --- 视图与导航控制 ---
+        function switchMainTab(tab) {
+            document.getElementById('nav-student').className = `w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all text-left ${tab==='student'?'bg-[#1A1B1F] text-white shadow-md':'bg-transparent text-gray-500 hover:bg-gray-100'}`;
+            document.getElementById('nav-portal').className = `w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all text-left ${tab==='portal'?'bg-[#1A1B1F] text-white shadow-md':'bg-transparent text-gray-500 hover:bg-gray-100'}`;
+            
+            document.getElementById('view-student').classList.toggle('hidden', tab!=='student');
+            document.getElementById('view-portal').classList.toggle('hidden', tab!=='portal');
+            document.getElementById('student-list-container').style.opacity = tab==='student' ? '1' : '0.3';
+            document.getElementById('student-list-container').style.pointerEvents = tab==='student' ? 'auto' : 'none';
+
+            if(tab === 'portal') renderPortalView();
+        }
+
+        // --- 1. 左侧：学生按届和班级分组 ---
+        async function loadUsers() {
+            const { data } = await window.supabase.from('users').select('*').order('created_at', { ascending: false });
+            App.users = data || [];
+            renderUserList(App.users);
+        }
+
+        function filterUsers() {
+            const q = document.getElementById('search-student').value.trim().toLowerCase();
+            renderUserList(App.users.filter(u => u.name.toLowerCase().includes(q) || u.student_id.includes(q)));
+        }
+
+        function renderUserList(users) {
+            const list = document.getElementById('user-list');
+            if(!users.length) { list.innerHTML = '<div class="text-center text-gray-400 py-10 text-xs font-bold">未找到匹配学生</div>'; return; }
+            
+            // 数据分组：基于学号前4位(届) -> 班级
+            const grouped = {};
+            users.forEach(u => {
+                let year = '其他';
+                if (u.student_id) {
+                    const match = u.student_id.match(/^(\d{4})/);
+                    if (match) year = match[1] + '届';
+                }
+                const cls = u.class_name || '未分配班级';
+                if (!grouped[year]) grouped[year] = {};
+                if (!grouped[year][cls]) grouped[year][cls] = [];
+                grouped[year][cls].push(u);
+            });
+
+            let html = '';
+            // 年份降序排列
+            Object.keys(grouped).sort((a,b) => b.localeCompare(a)).forEach(year => {
+                html += `
+                <div class="mb-4">
+                    <div class="text-xs font-bold text-gray-400 bg-gray-100/80 backdrop-blur px-3 py-2 rounded-xl mb-2 sticky top-0 z-10 shadow-sm flex items-center gap-2">
+                        <i class="ph-bold ph-graduation-cap text-base"></i> ${year}
+                    </div>
+                    <div class="space-y-3 pl-2 border-l-2 border-gray-100 ml-3">`;
+                
+                // 班级升序排列
+                Object.keys(grouped[year]).sort().forEach(cls => {
+                    html += `
+                        <div>
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <div class="w-1.5 h-1.5 rounded-full bg-gray-300"></div> ${cls}
+                            </div>
+                            <div class="space-y-1.5 pl-3">`;
+                    
+                    grouped[year][cls].forEach(u => {
+                        html += `
+                                <div onclick="selectStudent('${u.student_id}')" class="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors border ${App.activeStudent === u.student_id ? 'bg-white border-gray-200 shadow-sm' : 'bg-transparent border-transparent hover:bg-white hover:shadow-sm'}">
+                                    <img src="${u.avatar}" class="w-8 h-8 rounded-full border border-gray-100 bg-white shrink-0 object-cover">
+                                    <div class="flex-1 min-w-0 text-left">
+                                        <div class="font-bold text-sm text-dark truncate">${u.name}</div>
+                                        <div class="text-[10px] text-gray-400 font-bold tracking-widest mt-0.5 truncate">${u.student_id}</div>
+                                    </div>
+                                </div>`;
+                    });
+                    html += `</div></div>`;
+                });
+                html += `</div></div>`;
+            });
+            list.innerHTML = html;
+        }
+
+        async function selectStudent(id) {
+            App.activeStudent = id;
+            const user = App.users.find(u => u.student_id === id);
+            
+            // 重新渲染以更新高亮选中态
+            renderUserList(document.getElementById('search-student').value.trim() 
+                ? App.users.filter(u => u.name.includes(document.getElementById('search-student').value) || u.student_id.includes(document.getElementById('search-student').value)) 
+                : App.users);
+            
+            document.getElementById('student-empty').classList.add('hidden');
+            document.getElementById('student-header').classList.remove('hidden');
+            document.getElementById('student-content').classList.remove('hidden');
+            
+            document.getElementById('cur-avatar').src = user.avatar;
+            document.getElementById('cur-name').textContent = user.name;
+            document.getElementById('cur-info').textContent = `学号: ${id} | 班级: ${user.class_name||'暂无'}`;
+            
+            await fetchRecords(App.activeTab);
+        }
+
+        // --- 2. 学生档案模块管理 ---
+        async function switchDataTab(tab) {
+            App.activeTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const btnTextMap = { academic: '新增成绩记录', health: '新增体检记录', award: '新增荣誉奖惩', library: '新增借阅记录' };
+            document.getElementById('btn-add-text').textContent = btnTextMap[tab];
+            
+            if(App.activeStudent) await fetchRecords(tab);
+        }
+
+        async function fetchRecords(tab) {
+            const { data } = await window.supabase.from('archives').select(tab).eq('student_id', App.activeStudent).single();
+            App.records = data ? (data[tab] || []) : [];
+            renderRecordsList();
+        }
+
+        function renderRecordsList() {
+            const container = document.getElementById('records-list');
+            if(!App.records.length) { container.innerHTML = '<div class="text-center text-gray-400 py-20 font-bold bg-[#F3F0EA] rounded-[24px]">该模块暂无记录</div>'; return; }
+            
+            let html = '';
+            App.records.forEach((rec, index) => {
+                if(App.activeTab === 'academic') {
+                    html += `
+                    <div class="bg-white border border-gray-100 rounded-[24px] p-6 shadow-sm">
+                        <div class="flex justify-between items-start mb-4">
+                            <div><h4 class="text-lg font-bold">${rec.title} <span class="text-[10px] bg-[#FFD646] px-2 py-1 rounded ml-2">${rec.tag || '测验'}</span></h4><p class="text-xs text-gray-500 font-bold mt-1 tracking-widest">总分: ${rec.totalScore}/${rec.totalMax} | 排名: #${rec.gradeRank} | 日期: ${rec.date}</p></div>
+                            <div class="flex gap-2">
+                                <button onclick="openModal(${index})" class="p-2 bg-gray-50 rounded-lg text-[#A0C4FF] hover:bg-gray-100 transition"><i class="ph-bold ph-pencil-simple"></i></button>
+                                <button onclick="deleteRecord(${index})" class="p-2 bg-gray-50 rounded-lg text-[#FF6B6B] hover:bg-gray-100 transition"><i class="ph-bold ph-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 md:grid-cols-6 gap-2">
+                            ${(rec.subjects||[]).map(s => `<div class="bg-[#F3F0EA] p-2.5 rounded-xl text-center"><p class="text-[10px] font-bold text-gray-500">${s.name}</p><p class="text-sm font-bold">${s.score}</p></div>`).join('')}
+                        </div>
+                    </div>`;
+                } else if(App.activeTab === 'health') {
+                    html += `
+                    <div class="bg-white border border-gray-100 rounded-[24px] p-6 shadow-sm">
+                        <div class="flex justify-between items-start mb-4">
+                            <div><h4 class="text-lg font-bold">${rec.title}</h4><p class="text-xs text-gray-500 font-bold mt-1 tracking-widest">记录日期: ${rec.date}</p></div>
+                            <div class="flex gap-2">
+                                <button onclick="openModal(${index})" class="p-2 bg-gray-50 rounded-lg text-[#A0C4FF] hover:bg-gray-100 transition"><i class="ph-bold ph-pencil-simple"></i></button>
+                                <button onclick="deleteRecord(${index})" class="p-2 bg-gray-50 rounded-lg text-[#FF6B6B] hover:bg-gray-100 transition"><i class="ph-bold ph-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                            ${(rec.details||[]).map(d => `<div class="border border-gray-100 rounded-xl p-3 text-center"><p class="text-[10px] font-bold text-gray-500 uppercase">${d.item}</p><p class="text-base font-bold">${d.value}</p></div>`).join('')}
+                        </div>
+                        <div class="bg-[#F3F0EA] p-4 rounded-xl text-sm font-medium text-gray-700">${rec.result_summary}</div>
+                    </div>`;
+                } else if(App.activeTab === 'award') {
+                    html += `
+                    <div class="bg-white border border-gray-100 rounded-[24px] p-6 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${rec.type==='Honor'?'bg-[#FFD646]/20 text-[#FFD646]':'bg-[#FF6B6B]/20 text-[#FF6B6B]'}"><i class="${rec.type==='Honor'?'ph-fill ph-medal':'ph-fill ph-warning-octagon'}"></i></div>
+                                <div><h4 class="text-base font-bold">${rec.item}</h4><p class="text-xs text-gray-500 font-bold mt-1 tracking-widest">${rec.date} · ${rec.issuer}</p></div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="openModal(${index})" class="p-2 bg-gray-50 rounded-lg text-[#A0C4FF] hover:bg-gray-100 transition"><i class="ph-bold ph-pencil-simple"></i></button>
+                                <button onclick="deleteRecord(${index})" class="p-2 bg-gray-50 rounded-lg text-[#FF6B6B] hover:bg-gray-100 transition"><i class="ph-bold ph-trash"></i></button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-4 leading-relaxed">${rec.description}</p>
+                    </div>`;
+                } else if(App.activeTab === 'library') {
+                    html += `
+                    <div class="bg-white border border-gray-100 rounded-[24px] p-6 shadow-sm flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-4 min-w-0">
+                            <img src="${rec.cover||'https://via.placeholder.com/150'}" class="w-12 h-16 object-cover rounded-lg border border-gray-100 shrink-0 bg-[#F3F0EA]">
+                            <div class="truncate">
+                                <h4 class="font-bold text-base truncate">${rec.title} <span class="text-[10px] bg-[#F3F0EA] px-2 py-1 rounded ml-2 font-bold">${rec.status}</span></h4>
+                                <p class="text-xs text-gray-500 font-bold mt-1 tracking-widest">作者: ${rec.author} | 借出: ${rec.borrow_date} | 应还: ${rec.due_date}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 shrink-0">
+                            <button onclick="openModal(${index})" class="p-2 bg-gray-50 rounded-lg text-[#A0C4FF] hover:bg-gray-100 transition"><i class="ph-bold ph-pencil-simple"></i></button>
+                            <button onclick="deleteRecord(${index})" class="p-2 bg-gray-50 rounded-lg text-[#FF6B6B] hover:bg-gray-100 transition"><i class="ph-bold ph-trash"></i></button>
+                        </div>
+                    </div>`;
+                }
+            });
+            container.innerHTML = html;
+        }
+
+        // --- 表单与记录保存 ---
+        function openModal(index) {
+            App.editingIndex = index;
+            const rec = index >= 0 ? App.records[index] : null;
+            const tab = App.activeTab;
+            
+            document.getElementById('modal-title').textContent = index >= 0 ? '编辑档案记录' : '新增档案记录';
+            let formHtml = '';
+
+            if(tab === 'academic') {
+                const getScore = (idx) => rec && rec.subjects && rec.subjects[idx] ? rec.subjects[idx].score : '';
+                const getName = (idx, defaultName) => rec && rec.subjects && rec.subjects[idx] ? rec.subjects[idx].name : defaultName;
+                const selectOpts = (selName) => ['物理','历史','化学','生物','政治','地理'].map(n => `<option ${n===selName?'selected':''}>${n}</option>`).join('');
+                
+                formHtml = `
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="col-span-2"><label class="text-xs font-bold text-gray-400 uppercase mb-2">考试名称</label><input id="m-a-title" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.title:''}"></div>
+                        <div><label class="text-xs font-bold text-gray-400 uppercase mb-2">考试标签</label><input id="m-a-tag" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.tag:'阶段测试'}"></div>
+                        <div><label class="text-xs font-bold text-gray-400 uppercase mb-2">考试日期</label><input id="m-a-date" type="date" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.date.replace(/\./g,'-'):''}"></div>
+                        <div><label class="text-xs font-bold text-gray-400 uppercase mb-2">考试总分</label><input id="m-a-score" type="number" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.totalScore:''}"></div>
+                        <div class="flex gap-2">
+                            <div class="w-1/2"><label class="text-xs font-bold text-gray-400 uppercase mb-2">满分</label><input id="m-a-max" type="number" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.totalMax:750}"></div>
+                            <div class="w-1/2"><label class="text-xs font-bold text-gray-400 uppercase mb-2">排名</label><input id="m-a-rank" type="number" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.gradeRank:''}"></div>
+                        </div>
+                    </div>
+                    <p class="text-xs font-bold text-dark border-l-4 border-[#A0C4FF] pl-2 mb-2">必修科目 (固定)</p>
+                    <div class="grid grid-cols-3 gap-3 mb-6">
+                        <div><label class="text-[10px] font-bold text-gray-400">语文</label><input id="m-a-cn" type="number" class="w-full border border-gray-100 rounded-xl p-2 font-bold text-sm outline-none text-center" value="${getScore(0)}"></div>
+                        <div><label class="text-[10px] font-bold text-gray-400">数学</label><input id="m-a-math" type="number" class="w-full border border-gray-100 rounded-xl p-2 font-bold text-sm outline-none text-center" value="${getScore(1)}"></div>
+                        <div><label class="text-[10px] font-bold text-gray-400">英语</label><input id="m-a-en" type="number" class="w-full border border-gray-100 rounded-xl p-2 font-bold text-sm outline-none text-center" value="${getScore(2)}"></div>
+                    </div>
+                    <p class="text-xs font-bold text-dark border-l-4 border-[#16A34A] pl-2 mb-2">选修科目 (三门)</p>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="border rounded-xl p-2"><select id="m-a-el1-n" class="w-full text-[10px] font-bold bg-transparent outline-none mb-1 text-center">${selectOpts(getName(3, '物理'))}</select><input id="m-a-el1-s" type="number" class="w-full bg-gray-50 rounded-lg p-1.5 font-bold text-sm outline-none text-center" placeholder="得分" value="${getScore(3)}"></div>
+                        <div class="border rounded-xl p-2"><select id="m-a-el2-n" class="w-full text-[10px] font-bold bg-transparent outline-none mb-1 text-center">${selectOpts(getName(4, '化学'))}</select><input id="m-a-el2-s" type="number" class="w-full bg-gray-50 rounded-lg p-1.5 font-bold text-sm outline-none text-center" placeholder="得分" value="${getScore(4)}"></div>
+                        <div class="border rounded-xl p-2"><select id="m-a-el3-n" class="w-full text-[10px] font-bold bg-transparent outline-none mb-1 text-center">${selectOpts(getName(5, '生物'))}</select><input id="m-a-el3-s" type="number" class="w-full bg-gray-50 rounded-lg p-1.5 font-bold text-sm outline-none text-center" placeholder="得分" value="${getScore(5)}"></div>
+                    </div>`;
+            } else if(tab === 'health') {
+                const getVal = (idx) => rec && rec.details && rec.details[idx] ? rec.details[idx].value : '';
+                formHtml = `
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="col-span-2"><label class="text-xs font-bold text-gray-400 uppercase mb-2">报告标题</label><input id="m-h-title" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.title:''}"></div>
+                        <div class="col-span-2"><label class="text-xs font-bold text-gray-400 uppercase mb-2">监测日期</label><input id="m-h-date" type="date" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.date.replace(/\./g,'-'):''}"></div>
+                        <div><label class="text-xs font-bold text-gray-400 uppercase mb-2">血压 (mmHg)</label><input id="m-h-bp" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${getVal(0)}"></div>
+                        <div><label class="text-xs font-bold text-gray-400 uppercase mb-2">视力</label><input id="m-h-vi" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${getVal(1)}"></div>
+                        <div><label class="text-xs font-bold text-gray-400 uppercase mb-2">身高/体重 (CM/KG)</label><input id="m-h-hw" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${getVal(2)}"></div>
+                        <div><label class="text-xs font-bold text-gray-400 uppercase mb-2">血氧饱和度 (%)</label><input id="m-h-sp" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${getVal(3)}"></div>
+                    </div>
+                    <div><label class="text-xs font-bold text-gray-400 uppercase mb-2">医生综合评语</label><textarea id="m-h-sum" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 font-bold text-sm h-24 outline-none">${rec?rec.result_summary:''}</textarea></div>`;
+            } else if(tab === 'award') {
+                const isWarning = rec && rec.type === 'Warning';
+                formHtml = `
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="col-span-2"><label class="text-xs font-bold text-gray-400 uppercase mb-2">奖惩名称</label><input id="m-aw-title" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.item:''}"></div>
+                        <div><label class="text-xs font-bold text-gray-400 uppercase mb-2">颁发/录入单位</label><input id="m-aw-issuer" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.issuer:''}"></div>
+                        <div><label class="text-xs font-bold text-gray-400 uppercase mb-2">记录日期</label><input id="m-aw-date" type="date" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.date.replace(/\./g,'-'):''}"></div>
+                        <div class="col-span-2"><label class="text-xs font-bold text-gray-400 uppercase mb-2">记录性质</label><select id="m-aw-type" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none"><option value="Honor" ${!isWarning?'selected':''}>正面荣誉 (Honor)</option><option value="Warning" ${isWarning?'selected':''}>违纪处分 (Warning)</option></select></div>
+                    </div>
+                    <div><label class="text-xs font-bold text-gray-400 uppercase mb-2">详细描述</label><textarea id="m-aw-desc" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 font-bold text-sm h-24 outline-none">${rec?rec.description:''}</textarea></div>`;
+            } else if(tab === 'library') {
+                formHtml = `
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="col-span-2"><label class="text-xs font-bold text-gray-400 uppercase mb-2">书籍名称</label><input id="m-l-title" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.title:''}"></div>
+                        <div class="col-span-2"><label class="text-xs font-bold text-gray-400 uppercase mb-2">作者</label><input id="m-l-author" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.author:''}"></div>
+                        <div><label class="text-xs font-bold text-gray-400 uppercase mb-2">借出日期</label><input id="m-l-bdate" type="date" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.borrow_date.replace(/\./g,'-'):''}"></div>
+                        <div><label class="text-xs font-bold text-gray-400 uppercase mb-2">应还日期</label><input id="m-l-ddate" type="date" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.due_date.replace(/\./g,'-'):''}"></div>
+                        <div class="col-span-2"><label class="text-xs font-bold text-gray-400 uppercase mb-2">借阅状态</label><select id="m-l-status" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none"><option ${rec&&rec.status==='借阅中'?'selected':''}>借阅中</option><option ${rec&&rec.status==='已归还'?'selected':''}>已归还</option><option ${rec&&rec.status==='逾期未还'?'selected':''}>逾期未还</option></select></div>
+                        <div class="col-span-2"><label class="text-xs font-bold text-gray-400 uppercase mb-2">封面URL (选填)</label><input id="m-l-cover" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="${rec?rec.cover:''}"></div>
+                    </div>`;
+            }
+
+            document.getElementById('modal-body').innerHTML = formHtml;
+            document.getElementById('modal-save').onclick = () => saveRecord(tab);
+            document.getElementById('modal-overlay').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
+
+        async function saveRecord(tab) {
+            const btn = document.getElementById('modal-save');
+            const origText = btn.innerHTML;
+            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> 保存中...'; btn.disabled = true;
+
+            const dateStr = (id) => { const v = document.getElementById(id).value; return v ? v.replace(/-/g, '.') : new Date().toLocaleDateString('zh-CN').replace(/\//g, '.'); };
+            let newData = {};
+
+            if(tab === 'academic') {
+                const buildSub = (nameId, scoreId, defName) => ({ name: document.getElementById(nameId)?document.getElementById(nameId).value:defName, score: document.getElementById(scoreId).value||0, avg: 85, change: '↑ 0', changeColor: 'text-[#16A34A]' });
+                newData = {
+                    title: document.getElementById('m-a-title').value||'测验', tag: document.getElementById('m-a-tag').value||'日常', date: dateStr('m-a-date'),
+                    totalScore: document.getElementById('m-a-score').value||0, totalMax: document.getElementById('m-a-max').value||750, gradeRank: document.getElementById('m-a-rank').value||1,
+                    subjects: [buildSub(null,'m-a-cn','语文'), buildSub(null,'m-a-math','数学'), buildSub(null,'m-a-en','英语'), buildSub('m-a-el1-n','m-a-el1-s'), buildSub('m-a-el2-n','m-a-el2-s'), buildSub('m-a-el3-n','m-a-el3-s')]
+                };
+            } else if(tab === 'health') {
+                newData = {
+                    title: document.getElementById('m-h-title').value||'体检报告', date: dateStr('m-h-date'), result_summary: document.getElementById('m-h-sum').value||'正常',
+                    details: [{item:'血压',value:document.getElementById('m-h-bp').value||'-',status:'正常',color:'text-[#16A34A]'},{item:'视力',value:document.getElementById('m-h-vi').value||'-',status:'正常',color:'text-[#16A34A]'},{item:'身高/体重',value:document.getElementById('m-h-hw').value||'-',status:'正常',color:'text-[#16A34A]'},{item:'血氧饱和度',value:document.getElementById('m-h-sp').value||'-',status:'正常',color:'text-[#16A34A]'}]
+                };
+            } else if(tab === 'award') {
+                newData = { type: document.getElementById('m-aw-type').value, item: document.getElementById('m-aw-title').value||'记录', issuer: document.getElementById('m-aw-issuer').value||'未知', description: document.getElementById('m-aw-desc').value, date: dateStr('m-aw-date') };
+            } else if(tab === 'library') {
+                newData = { title: document.getElementById('m-l-title').value||'未知', author: document.getElementById('m-l-author').value||'未知', status: document.getElementById('m-l-status').value, borrow_date: dateStr('m-l-bdate'), due_date: dateStr('m-l-ddate'), cover: document.getElementById('m-l-cover').value||'https://via.placeholder.com/150' };
+            }
+
+            if(App.editingIndex >= 0) App.records[App.editingIndex] = newData;
+            else App.records.unshift(newData);
+
+            try {
+                const { error } = await window.supabase.from('archives').update({ [tab]: App.records }).eq('student_id', App.activeStudent);
+                if(error) throw error;
+                closeModal();
+                renderRecordsList();
+            } catch(e) { alert('保存失败: ' + e.message); } finally { btn.innerHTML = origText; btn.disabled = false; }
+        }
+
+        async function deleteRecord(index) {
+            if(!confirm('确定要删除这条记录吗？')) return;
+            App.records.splice(index, 1);
+            await window.supabase.from('archives').update({ [App.activeTab]: App.records }).eq('student_id', App.activeStudent);
+            renderRecordsList();
+        }
+
+        // --- 3. 门户设置控制模块 (新闻/模范学生) ---
+        async function renderPortalView() {
+            // 获取并渲染模范学生列表
+            const { data } = await window.supabase.from('system_settings').select('value').eq('key', 'star_students').single();
+            let stars = data && Array.isArray(data.value) ? data.value : [];
+            if (data && !Array.isArray(data.value) && data.value.name) stars = [data.value]; // 兼容旧版单对象格式
+            if (!stars.length) stars = [{ name: '李明', title: '高三1班', quote: '在探索中发现自我。', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=star' }];
+            App.starStudents = stars;
+            
+            const starList = document.getElementById('p-star-list');
+            starList.innerHTML = App.starStudents.map((s, idx) => `
+                <div class="flex items-center justify-between gap-4 bg-[#F3F0EA] p-4 rounded-xl">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <img src="${s.avatar}" class="w-12 h-12 rounded-full border border-gray-100 shrink-0 object-cover bg-white">
+                        <div class="truncate">
+                            <h4 class="text-sm font-bold text-dark truncate">${s.name} <span class="text-[10px] bg-white px-2 py-0.5 rounded text-gray-500 ml-1 font-normal">${s.title}</span></h4>
+                            <p class="text-xs text-gray-500 italic mt-1 truncate">"${s.quote}"</p>
+                        </div>
+                    </div>
+                    <button onclick="deleteStar(${idx})" class="p-2 bg-white rounded-lg text-[#FF6B6B] hover:bg-gray-50 transition shrink-0 shadow-sm"><i class="ph-bold ph-trash"></i></button>
+                </div>
+            `).join('');
+
+            // 获取并渲染新闻轮播列表
+            const { data: newsData } = await window.supabase.from('news').select('*').order('created_at', { ascending: false });
+            const nList = document.getElementById('p-news-list');
+            if(!newsData || !newsData.length) nList.innerHTML = '<div class="text-center text-gray-400 py-6 text-sm font-bold">暂无在线资讯，前端将显示默认数据</div>';
+            else nList.innerHTML = newsData.map(n => `
+                <div class="flex justify-between items-center bg-[#F3F0EA] p-4 rounded-xl">
+                    <div class="truncate pr-4">
+                        <span class="text-[10px] font-bold bg-white px-2 py-1 rounded mr-2 border border-gray-100">${n.tag}</span>
+                        <span class="font-bold text-sm">${n.title}</span><p class="text-xs text-gray-500 mt-1 tracking-widest">${n.date}</p>
+                    </div>
+                    <button onclick="deleteNews('${n.id}')" class="p-2 bg-white rounded-lg text-[#FF6B6B] hover:bg-gray-50 transition shrink-0"><i class="ph-bold ph-trash"></i></button>
+                </div>
+            `).join('');
+        }
+
+        async function fetchApiNews() {
+            try {
+                const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=http://www.chinanews.com.cn/rss/edu.xml');
+                const data = await res.json();
+                if(data.status === 'ok') App.apiNews = data.items.slice(0, 15);
+            } catch(e){}
+        }
+
+        async function openPortalModal(type) {
+            document.getElementById('modal-title').textContent = type === 'star' ? '新增模范学生轮播预设' : '推送外部资讯';
+            let html = '';
+            if(type === 'star') {
+                html = `
+                    <input id="p-m-name" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none mb-4" placeholder="模范姓名">
+                    <input id="p-m-title" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none mb-4" placeholder="头衔/简介 (例如: 高一2班 | 劳动之星)">
+                    <textarea id="p-m-quote" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none mb-4 h-24" placeholder="模范寄语..."></textarea>
+                    <input id="p-m-avatar" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" placeholder="头像URL (留空自动生成)">
+                `;
+            } else if (type === 'news') {
+                const opts = App.apiNews.map((n, i) => `<option value="${i}">${n.title}</option>`).join('');
+                html = `
+                    <div class="bg-[#F3F0EA] p-4 rounded-xl mb-4"><label class="text-xs font-bold text-gray-500 block mb-2">选择全网最新教育头条</label><select id="p-m-api" class="w-full bg-white border border-gray-100 rounded-lg p-2 font-bold text-sm outline-none truncate">${opts||'<option>加载失败</option>'}</select></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="text-xs font-bold text-gray-500 block mb-2">自定义标角</label><input id="p-m-tag" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none" value="🎓 教育资讯"></div>
+                        <div><label class="text-xs font-bold text-gray-500 block mb-2">主题配色组合</label><select id="p-m-color" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 font-bold text-sm outline-none"><option value="bg-[#BDB2FF],bg-[#FF9B85]">紫色 + 橙色</option><option value="bg-[#FF6B6B],bg-[#FFD646]">红色 + 黄色</option><option value="bg-[#A0C4FF],bg-[#16A34A]">蓝色 + 绿色</option></select></div>
+                    </div>`;
+            }
+            document.getElementById('modal-body').innerHTML = html;
+            document.getElementById('modal-save').onclick = () => savePortal(type);
+            document.getElementById('modal-overlay').classList.remove('hidden');
+        }
+
+        async function savePortal(type) {
+            const btn = document.getElementById('modal-save'); btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> 保存中...'; btn.disabled = true;
+            try {
+                if(type === 'star') {
+                    const name = document.getElementById('p-m-name').value;
+                    if(!name) throw new Error("姓名不能为空");
+                    const newStar = { 
+                        name: name, 
+                        title: document.getElementById('p-m-title').value || '未设置头衔', 
+                        quote: document.getElementById('p-m-quote').value || '...', 
+                        avatar: document.getElementById('p-m-avatar').value || ('https://api.dicebear.com/7.x/notionists/svg?seed=' + Math.random())
+                    };
+                    App.starStudents.unshift(newStar);
+                    await window.supabase.from('system_settings').upsert({ key: 'star_students', value: App.starStudents });
+                } else if (type === 'news') {
+                    const item = App.apiNews[document.getElementById('p-m-api').value];
+                    if(!item) throw new Error("无可用新闻");
+                    const colors = document.getElementById('p-m-color').value.split(',');
+                    const news = {
+                        tag: document.getElementById('p-m-tag').value, title: item.title, desc: item.description ? item.description.replace(/<[^>]+>/g, '').substring(0, 60) + '...' : "点击阅读详情",
+                        date: item.pubDate ? item.pubDate.split(' ')[0] : new Date().toLocaleDateString('zh-CN').replace(/\//g, '-'), circle_color_1: colors[0], circle_color_2: colors[1], url: item.link
+                    };
+                    await window.supabase.from('news').insert([news]);
+                }
+                closeModal(); renderPortalView();
+            } catch(e) { alert(e.message); } finally { btn.innerHTML = '保存至云端'; btn.disabled = false; }
+        }
+
+        async function deleteStar(index) {
+            if(!confirm('确定要在主页轮播中移除该模范学生吗？')) return;
+            App.starStudents.splice(index, 1);
+            await window.supabase.from('system_settings').upsert({ key: 'star_students', value: App.starStudents });
+            renderPortalView();
+        }
+
+        async function deleteNews(id) {
+            if(!confirm('确定移除此轮播新闻？')) return;
+            await window.supabase.from('news').delete().eq('id', id);
+            renderPortalView();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
