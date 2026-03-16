@@ -14,7 +14,6 @@
         const _supabaseUrl = 'https://rrkyvgexkadfkucokmyv.supabase.co';
         const _supabaseKey = 'sb_publishable_K1G2kk2BaS42t9IYQC3Nkw_v8n-H4ef';
         window.supabase = supabase.createClient(_supabaseUrl, _supabaseKey);
-        console.log("Supabase Client Initialized (index):", window.supabase);
     </script>
 
     <script>
@@ -34,14 +33,7 @@
         .transition-all-custom { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
         .modal-enter { opacity: 0; transform: scale(0.95); }
         .modal-enter-active { opacity: 1; transform: scale(1); transition: opacity 0.3s, transform 0.3s; }
-
-        /* 单色进度条样式 */
-        .progress-bar-inner {
-            width: 0%;
-            height: 100%;
-            background-color: #A0C4FF;
-            transition: width 0.4s ease-out;
-        }
+        .progress-bar-inner { width: 0%; height: 100%; background-color: #A0C4FF; transition: width 0.4s ease-out; }
     </style>
 </head>
 <body class="bg-bg min-h-screen text-textDark selection:bg-accentYellow selection:text-dark no-scrollbar font-sans text-left">
@@ -58,7 +50,11 @@
                         <i class="ph ph-magnifying-glass text-gray-400 text-xl"></i>
                         <input type="text" placeholder="搜索新闻、活动或公告..." class="bg-transparent border-none outline-none text-sm w-full placeholder-gray-400">
                     </div>
-                    <button class="bg-dark text-white px-8 py-3 rounded-full text-sm font-medium hover:bg-opacity-90 transition shadow-lg whitespace-nowrap">我要投稿</button>
+                    
+                    <!-- 关键修改：触发 AI 新闻生成的按钮 -->
+                    <button id="generate-news-btn" onclick="triggerGenerateNews()" class="bg-dark text-white px-8 py-3 rounded-full text-sm font-medium hover:bg-opacity-90 transition shadow-lg whitespace-nowrap flex items-center gap-2">
+                        <i class="ph-bold ph-magic-wand"></i> AI 生成新闻
+                    </button>
                     
                     <div onclick="toggleUserModal(true)" class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm cursor-pointer hover:ring-4 hover:ring-accentYellow/30 transition-all active:scale-95" title="管理 Campus 账号">
                         <img id="header-avatar-dashboard" src="" alt="Profile" class="w-full h-full object-cover">
@@ -168,10 +164,9 @@
         </main>
     </div>
 
-    <!-- 真实模拟：注册核验弹窗 -->
+    <!-- 手动注册核验弹窗 (保留干净数据的初始化) -->
     <div id="register-modal" class="fixed inset-0 z-[200] flex items-center justify-center hidden">
         <div class="absolute inset-0 bg-bg transition-all duration-500"></div>
-        
         <div class="relative bg-white w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden p-8 mx-4 text-center transform transition-all duration-300">
             
             <!-- 第一步：邮箱输入 -->
@@ -181,8 +176,6 @@
                 <p class="text-sm text-gray-500 mb-8">初次访问本站，请输入您的常用邮箱进行注册。</p>
                 <input type="email" id="new-user-email" placeholder="请输入邮箱 (例如: student@edu.cn)" class="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 mb-4 focus:ring-2 focus:ring-accentYellow outline-none text-center font-bold text-dark">
                 <button onclick="verifyEmail()" id="reg-verify-btn" class="w-full bg-dark text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-opacity-90 transition flex justify-center items-center gap-2">下一步 <i class="ph-bold ph-arrow-right text-lg"></i></button>
-                
-                <!-- 只有手动注册才会显示该按钮 -->
                 <button id="back-to-list-btn" onclick="closeRegistrationModal()" class="mt-4 text-xs text-gray-400 hover:text-dark hidden">返回账号列表</button>
             </div>
 
@@ -214,11 +207,7 @@
                 <div class="w-16 h-16 bg-accentBlue/20 text-accentBlue rounded-2xl flex items-center justify-center mx-auto mb-6"><i class="ph-fill ph-database text-3xl animate-pulse"></i></div>
                 <h3 class="text-2xl font-bold text-dark mb-2">正在初始化空白档案</h3>
                 <p class="text-sm text-gray-500 mb-6">系统正在为您创建初始账号，各项记录将在您后续使用中逐步生成...</p>
-                
-                <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden mb-4">
-                    <div id="reg-progress-bar" class="progress-bar-inner"></div>
-                </div>
-                
+                <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden mb-4"><div id="reg-progress-bar" class="progress-bar-inner"></div></div>
                 <p id="reg-loading-text" class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">云端数据库连线中...</p>
             </div>
         </div>
@@ -259,8 +248,46 @@
             }
         };
 
-        // 当前设备记住的用户 ID (仅仅是个标记，实际数据来自云端)
         let currentUserId = localStorage.getItem('edu_space_user') || null;
+
+        // --- AI 自动生成新闻逻辑 ---
+        async function triggerGenerateNews() {
+            const topic = prompt("请简要输入新闻主题 (例如：春季运动会、期末考试、社团招新等)：", "校园日常动态");
+            if (topic === null || topic.trim() === '') return;
+
+            const btn = document.getElementById('generate-news-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> AI 撰稿中...';
+            btn.disabled = true;
+
+            try {
+                // 必须通过 EdgeOne Pages 部署后调用此边缘路由
+                const response = await fetch('/api/generate-news', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic: topic })
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const newsItem = await response.json();
+
+                if (newsItem.error) throw new Error(newsItem.error);
+
+                // 写入到 Supabase 的 news 表
+                const { error: insertErr } = await window.supabase.from('news').insert([newsItem]);
+                if (insertErr) throw insertErr;
+
+                // 成功后重新拉取新闻并渲染轮播图
+                DashboardApp.init();
+
+            } catch (err) {
+                alert(`AI 生成新闻失败: ${err.message}\n请确保您已通过 EdgeOne Pages Dev CLI 测试或已部署至线上。`);
+                console.error("News Generation Error:", err);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
 
         // --- 注册流程逻辑 ---
         function triggerNewRegistration(isManual = false) {
@@ -294,13 +321,10 @@
             btn.disabled = true;
 
             try {
-                // 极短的过渡动画
                 await new Promise(resolve => setTimeout(resolve, 300));
                 
                 document.getElementById('reg-step-1').classList.add('hidden'); 
                 document.getElementById('reg-step-2').classList.remove('hidden');
-                
-                // 自动分配一个默认学号建议，用户可自行修改
                 document.getElementById('info-id').value = '202' + Math.floor(Math.random()*90000+10000);
             } finally {
                 btn.innerHTML = '下一步 <i class="ph-bold ph-arrow-right text-lg"></i>'; 
@@ -339,7 +363,7 @@
                 // 构建全空初始状态数据
                 const user = {
                     student_id: id,
-                    real_id: email, // 将注册邮箱存入该字段
+                    real_id: email, 
                     name: name,
                     class_name: className,
                     gender: "未设置",
@@ -418,7 +442,6 @@
             event.stopPropagation();
             if (!confirm('警告：确定要彻底删除该校园账号及所有关联档案吗？数据库中的数据将被永久擦除。')) return;
 
-            // === 真实 Supabase 删除调用 ===
             const { error } = await window.supabase.from('users').delete().eq('student_id', userId);
             if (error) {
                 alert("云端删除失败: " + error.message);
@@ -457,7 +480,7 @@
                     this.startAutoPlay(); 
                 } else {
                     document.getElementById('news-title').textContent = '暂无校园资讯';
-                    document.getElementById('news-desc').textContent = '请稍后再来看看吧。';
+                    document.getElementById('news-desc').textContent = '点击右上角的"AI 生成新闻"试试吧！';
                     document.getElementById('news-tag').textContent = '最新动态';
                 }
             },
@@ -484,10 +507,7 @@
         // --- 入口初始化逻辑 ---
         window.onload = async () => {
             const users = await api.getUsers();
-            
-            // 逻辑：如果云端有该用户数据 且 本地记录了当前用户 -> 直接进入主页
             if (users && users.length > 0 && currentUserId) {
-                // 确保本地存的 userId 在云端确实存在 (防止云端被清空但本地残留)
                 const isValidUser = users.some(u => u.student_id === currentUserId);
                 if (!isValidUser) {
                     currentUserId = users[0].student_id;
@@ -495,7 +515,6 @@
                 }
                 DashboardApp.init();
             } else {
-                // 否则（新设备或无账号）直接强制呼出教务核验弹窗
                 triggerNewRegistration(false);
             }
         };
