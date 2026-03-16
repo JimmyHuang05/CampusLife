@@ -8,8 +8,6 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
     
-    <!-- 已经彻底移除 ai_helper.js 的引入，完全依赖 EdgeOne API -->
-
     <!-- 引入 Supabase JS SDK 及初始化 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
@@ -243,6 +241,11 @@
     </div>
 
     <script>
+        // === 关键修改：在这里配置您的 EdgeOne 云函数域名 ===
+        // 如果您在本地测试（双击 HTML 打开），必须填入完整的 EdgeOne 域名，例如 'https://campuslife.edgeone.dev'
+        // 如果您已将此 HTML 部署到了 EdgeOne 上，保持为空字符串即可
+        const API_BASE = 'https://campuslife.edgeone.dev/'; // 替换为您的 EdgeOne 域名
+
         // --- 核心 API 重写：全部对接 Supabase ---
         const api = {
             getUsers: async () => {
@@ -293,14 +296,14 @@
             btn.disabled = true;
 
             try {
-                // 修改：向 EdgeOne API 发起真实的请求，替代 AIHelper
-                const response = await fetch('/api/guess-gender', {
+                // 使用 API_BASE 处理可能跨域的云端请求
+                const response = await fetch(API_BASE + '/api/guess-gender', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: userName })
                 });
                 
-                if (!response.ok) throw new Error("API请求失败");
+                if (!response.ok) throw new Error(`HTTP 状态码: ${response.status}`);
                 const analysis = await response.json();
                 
                 document.getElementById('reg-step-1').classList.add('hidden'); 
@@ -309,8 +312,8 @@
                 document.getElementById('confirm-gender').value = analysis.gender === '女' ? '女' : '男';
                 document.getElementById('confirm-id').value = '202' + Math.floor(Math.random()*90000+10000);
             } catch (e) {
-                alert("网络异常或服务端报错，请检查EdgeOne配置重试。");
-                console.error(e);
+                alert(`网络异常或服务端报错：${e.message}\n请检查控制台(F12)的网络请求，确认EdgeOne配置。`);
+                console.error("Fetch 请求失败细节:", e);
             } finally {
                 btn.innerHTML = '<i class="ph-bold ph-identification-badge text-lg"></i> 验证学生身份'; 
                 btn.disabled = false;
@@ -338,16 +341,18 @@
             }, 400);
 
             try {
-                // 修改：向 EdgeOne API 发起真实的数据生成请求，替代 AIHelper
-                const response = await fetch('/api/generate-student', {
+                // 使用 API_BASE 处理可能跨域的云端请求
+                const response = await fetch(API_BASE + '/api/generate-student', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: name, gender: gender, studentId: id })
                 });
 
-                if (!response.ok) throw new Error("生成数据失败，请检查 EdgeOne 服务");
+                if (!response.ok) throw new Error(`生成数据失败，HTTP状态码: ${response.status}`);
                 const generatedData = await response.json();
                 
+                if (generatedData.error) throw new Error(generatedData.error);
+
                 // === 关键：执行 Supabase 数据库插入 ===
                 const user = generatedData.user;
                 const { error: userErr } = await window.supabase.from('users').insert([user]);
@@ -381,9 +386,9 @@
                     DashboardApp.init();
                 }, 800); 
             } catch (err) { 
-                console.error(err);
+                console.error("绑定失败报错:", err);
                 clearInterval(interval);
-                loadingText.innerHTML = `<span class='text-accentRed'>${err.message || '数据同步失败，请重试。'}</span>`; 
+                loadingText.innerHTML = `<span class='text-accentRed'>数据同步失败：${err.message || '网络异常'}</span>`; 
             }
         }
 
