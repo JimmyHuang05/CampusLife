@@ -8,13 +8,12 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
     
-    <!-- 引入 Supabase JS SDK 及初始化 -->
+    <!-- 引入 Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const _supabaseUrl = 'https://rrkyvgexkadfkucokmyv.supabase.co';
         const _supabaseKey = 'sb_publishable_K1G2kk2BaS42t9IYQC3Nkw_v8n-H4ef';
         window.supabase = supabase.createClient(_supabaseUrl, _supabaseKey);
-        console.log("Supabase Client Initialized (archive):", window.supabase);
     </script>
 
     <script>
@@ -22,7 +21,7 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['DM Sans', 'sans-serif'], serif: ['"Noto Serif SC"', 'serif'] },
-                    colors: { bg: '#F3F0EA', card: '#EBE7E0', cardLight: '#FDFBF7', dark: '#1A1B1F', accentYellow: '#FFD646', accentOrange: '#FF9B85', accentRed: '#FF6B6B', accentBlue: '#A0C4FF', accentPurple: '#BDB2FF', accentGreen: '#16A34A', textGray: '#9CA3AF', textDark: '#1F2937' },
+                    colors: { bg: '#F3F0EA', cardLight: '#FDFBF7', dark: '#1A1B1F', accentYellow: '#FFD646', accentOrange: '#FF9B85', accentRed: '#FF6B6B', accentBlue: '#A0C4FF', accentPurple: '#BDB2FF', accentGreen: '#16A34A', textDark: '#1F2937' },
                     boxShadow: { 'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)', 'popover': '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }
                 }
             }
@@ -41,7 +40,7 @@
 </head>
 <body class="bg-bg min-h-screen text-textDark selection:bg-accentYellow selection:text-dark no-scrollbar font-sans text-left relative">
 
-    <div class="max-w-[75%] mx-auto relative flex flex-col pt-4 pb-12">
+    <div class="max-w-[75%] mx-auto relative flex flex-col pt-4 pb-12 min-h-screen">
         <main id="page-archive" class="flex-1 p-6 lg:p-12 block">
             <header class="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-8 lg:mb-12">
                 <div>
@@ -49,9 +48,11 @@
                     <p class="text-gray-400 text-sm mt-2">欢迎使用通用档案检索系统。查询学术、体质及荣誉记录。</p>
                 </div>
                 <div class="flex items-center gap-4 mt-6 lg:mt-0">
-                    <button class="flex items-center gap-2 bg-white border border-gray-200 px-6 py-2.5 rounded-full text-sm font-medium hover:bg-gray-50 transition shadow-sm"><i class="ph ph-funnel text-lg"></i> 筛选条件</button>
-                    <!-- 点击头像返回主页 -->
-                    <div onclick="window.location.href='index.html'" title="返回首页管理账号" class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm cursor-pointer hover:scale-105 transition-transform"><img id="header-avatar-archive" src="" alt="Profile" class="w-full h-full object-cover"></div>
+                    <button onclick="window.location.href='index.html'" class="bg-white border border-gray-100 px-6 py-2.5 rounded-full shadow-sm text-sm font-bold text-dark hover:bg-gray-50 transition active:scale-95 flex items-center gap-2">
+                        <i class="ph-bold ph-house text-lg"></i> 返回主页
+                    </button>
+                    <!-- 点击头像打开管理账号 -->
+                    <div onclick="toggleUserModal(true)" title="管理 Campus 账号" class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm cursor-pointer hover:ring-4 hover:ring-accentYellow/30 transition-all"><img id="header-avatar-archive" src="" alt="Profile" class="w-full h-full object-cover bg-white"></div>
                 </div>
             </header>
 
@@ -92,36 +93,228 @@
                     <p class="text-gray-400 text-sm max-w-sm mx-auto leading-relaxed">请在上方搜索栏输入检索关键词，或通过类别下拉菜单筛选您需要查看的档案数据。</p>
                 </section>
             </div>
-            <footer class="py-8 border-t border-gray-200/50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-400">
+            
+            <footer class="py-8 mt-auto border-t border-gray-200/50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-400">
                 <div>© 2026 Edu.Space · 校园数字化综合服务平台</div>
             </footer>
         </main>
     </div>
 
+    <!-- 管理 Campus 账号 Modal (高保真深度还原设计图, 略微放大) -->
+    <div id="user-modal" class="fixed inset-0 z-[700] flex items-center justify-center hidden">
+        <div onclick="toggleUserModal(false)" class="absolute inset-0 bg-dark/40 backdrop-blur-sm transition-opacity"></div>
+        <div class="relative bg-[#FDFBF7] w-full max-w-[420px] rounded-[32px] shadow-2xl p-8 transform scale-95 opacity-0 transition-all duration-300" id="user-modal-box">
+            
+            <button onclick="toggleUserModal(false)" class="absolute top-6 right-6 w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+                <i class="ph-bold ph-x"></i>
+            </button>
+
+            <h3 class="text-xl font-bold text-dark mb-8 text-center">管理 Campus 账号</h3>
+
+            <button onclick="window.location.href='login.html'" class="w-full bg-[#1A1B1F] text-white py-3.5 rounded-[20px] font-bold text-sm hover:bg-gray-800 transition-all flex items-center justify-center gap-2 mb-6 shadow-md">
+                <i class="ph-bold ph-plus-circle text-lg"></i> 登录其他账号
+            </button>
+
+            <div class="flex items-center justify-center mb-6">
+                <hr class="w-12 border-gray-200">
+                <span class="px-3 text-[11px] font-bold text-gray-400">本地已登录账号</span>
+                <hr class="w-12 border-gray-200">
+            </div>
+
+            <div id="user-list" class="space-y-4 max-h-[40vh] overflow-y-auto no-scrollbar">
+                <!-- JS 渲染 -->
+            </div>
+
+            <p class="mt-8 text-center text-[11px] text-gray-400 font-medium">CampusLife - Powered by Supabase</p>
+        </div>
+    </div>
+
+    <!-- 个人设置 Modal -->
+    <div id="settings-modal" class="fixed inset-0 z-[800] flex items-center justify-center hidden">
+        <div onclick="closeSettingsModal()" class="absolute inset-0 bg-dark/40 backdrop-blur-sm transition-opacity"></div>
+        <div class="relative bg-white w-full max-w-md rounded-[32px] shadow-2xl p-8 mx-4 transform scale-95 opacity-0 transition-all duration-300" id="settings-box">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-xl font-bold tracking-tight text-dark">个人资料修改</h3>
+                <button onclick="closeSettingsModal()" class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-dark transition-colors"><i class="ph-bold ph-x"></i></button>
+            </div>
+            
+            <div class="space-y-5 text-left">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">真实姓名</label>
+                    <input type="text" id="set-name" class="w-full border border-gray-200 rounded-xl py-3.5 px-4 text-sm font-bold bg-white focus:ring-2 focus:ring-accentYellow focus:border-accentYellow outline-none transition-all shadow-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">所在班级</label>
+                        <input type="text" id="set-class" class="w-full border border-gray-200 rounded-xl py-3.5 px-4 text-sm font-bold bg-white focus:ring-2 focus:ring-accentYellow focus:border-accentYellow outline-none transition-all shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">性别</label>
+                        <select id="set-gender" class="w-full border border-gray-200 rounded-xl py-3.5 px-4 text-sm font-bold bg-white focus:ring-2 focus:ring-accentYellow focus:border-accentYellow outline-none transition-all shadow-sm">
+                            <option value="男">男</option><option value="女">女</option><option value="其他">其他</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="saveSettings()" id="btn-save-settings" class="w-full bg-dark text-white py-4 rounded-xl font-bold text-sm shadow-md hover:bg-gray-800 active:scale-95 transition-all mt-4 flex justify-center items-center gap-2">
+                    保存资料
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentUserId = localStorage.getItem('edu_space_user') || null;
 
-        // --- 全新改造：基于 Supabase 的真实 API ---
+        // --- 基于 Supabase 的 API ---
         const api = {
+            getUsers: async () => {
+                const { data, error } = await window.supabase.from('users').select('*').order('created_at', { ascending: false });
+                if (error) { console.error("获取用户列表失败:", error); return []; }
+                return data || [];
+            },
             getUser: async (id) => {
                 const { data, error } = await window.supabase.from('users').select('*').eq('student_id', id).single();
                 if (error) { console.error("获取用户失败:", error); return null; }
                 return data;
             },
             searchUsers: async (q) => {
-                const { data, error } = await window.supabase.from('users').select('*').or(`name.ilike.%${q}%,real_id.ilike.%${q}%`);
+                const { data, error } = await window.supabase.from('users').select('*').or(`name.ilike.%${q}%,student_id.ilike.%${q}%`);
                 if (error) { console.error("搜索用户失败:", error); return []; }
                 return data || [];
             },
             getArchives: async (id, category) => {
                 const { data, error } = await window.supabase.from('archives').select('*').eq('student_id', id).single();
                 if (error || !data) return { academic: [], health: [], library: [], award: [] };
-                
                 if (category === 'all') return data;
-                // 注意：由于 Supabase JSONB 的特性，只返回请求的那一列
                 return { [category]: data[category] || [] };
             }
         };
+
+        // 用户管理相关
+        window.handleLogout = function(event) {
+            if(event) event.stopPropagation();
+            localStorage.removeItem('edu_space_user');
+            localStorage.removeItem('edu_space_role');
+            currentUserId = null;
+            toggleUserModal(false);
+            window.location.href = 'login.html';
+        };
+
+        async function renderUserList() {
+            const listContainer = document.getElementById('user-list');
+            listContainer.innerHTML = '<div class="text-center py-4 text-gray-400 text-sm">获取中...</div>';
+            
+            if (!currentUserId) { 
+                listContainer.innerHTML = '<p class="text-center py-4 text-gray-400 text-sm">暂无登录账号</p>'; 
+                return; 
+            }
+            
+            const users = await api.getUsers();
+            if (!users || users.length === 0) {
+                listContainer.innerHTML = '<p class="text-center py-4 text-gray-400 text-sm">暂无账号信息</p>'; 
+                return;
+            }
+            
+            listContainer.innerHTML = users.map(user => {
+                const isActive = user.student_id === currentUserId;
+                return `
+                <div class="flex items-center justify-between p-4 rounded-2xl bg-white border-2 transition-all ${isActive ? 'border-accentYellow shadow-sm' : 'border-transparent hover:border-gray-200'}">
+                    <div class="flex items-center gap-4 overflow-hidden">
+                        <img src="${user.avatar}" class="w-12 h-12 rounded-full bg-gray-50 border border-gray-100 shrink-0">
+                        <div class="truncate text-left">
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <span class="font-bold text-sm text-dark truncate">${user.name}</span>
+                                ${isActive ? '<span class="text-[10px] bg-accentYellow text-dark px-1.5 py-0.5 rounded font-bold shrink-0">当前</span>' : ''}
+                            </div>
+                            <div class="text-[11px] text-gray-400 font-medium truncate">${user.class_name || '学生'}</div>
+                        </div>
+                    </div>
+                    ${isActive ? `
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="openSettings('${user.student_id}', event)" class="w-9 h-9 rounded-full bg-gray-50 text-gray-500 flex items-center justify-center hover:bg-gray-200 hover:text-dark transition-colors"><i class="ph-fill ph-gear"></i></button>
+                        <button onclick="handleLogout(event)" class="w-9 h-9 rounded-full bg-gray-50 text-gray-500 flex items-center justify-center hover:bg-red-50 hover:text-accentRed transition-colors"><i class="ph-bold ph-sign-out"></i></button>
+                    </div>` : `
+                    <button onclick="switchUser('${user.student_id}')" class="px-4 py-2 bg-gray-100 rounded-xl text-xs font-bold text-dark hover:bg-gray-200 transition-colors shrink-0">切换</button>
+                    `}
+                </div>`;
+            }).join('');
+        }
+
+        function toggleUserModal(show) {
+            const m = document.getElementById('user-modal'); 
+            const box = document.getElementById('user-modal-box');
+            if (show) { 
+                renderUserList(); 
+                m.classList.remove('hidden'); 
+                setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+            } else { 
+                box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => { m.classList.add('hidden'); }, 300); 
+            }
+        }
+        
+        function switchUser(userId) { 
+            currentUserId = userId; 
+            localStorage.setItem('edu_space_user', userId); 
+            toggleUserModal(false); 
+            window.location.reload(); 
+        }
+
+        async function openSettings(userId, event) {
+            if(event) event.stopPropagation();
+            toggleUserModal(false);
+            const user = await api.getUser(userId);
+            if(user) {
+                document.getElementById('set-name').value = user.name || '';
+                document.getElementById('set-class').value = user.class_name || '';
+                document.getElementById('set-gender').value = user.gender || '';
+                document.getElementById('settings-modal').dataset.userId = userId;
+                
+                const m = document.getElementById('settings-modal');
+                const box = document.getElementById('settings-box');
+                m.classList.remove('hidden');
+                setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+            }
+        }
+
+        function closeSettingsModal() {
+            const m = document.getElementById('settings-modal');
+            const box = document.getElementById('settings-box');
+            box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { m.classList.add('hidden'); toggleUserModal(true); }, 300);
+        }
+
+        async function saveSettings() {
+            const userId = document.getElementById('settings-modal').dataset.userId;
+            const name = document.getElementById('set-name').value.trim();
+            const className = document.getElementById('set-class').value.trim();
+            const gender = document.getElementById('set-gender').value;
+
+            if (!/^[\u4e00-\u9fa5]+$/.test(name)) { alert("姓名必须为全汉字"); return; }
+            if (!name || !className || !gender) { alert("请填写完整信息"); return; }
+
+            const btn = document.getElementById('btn-save-settings');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> 保存中...';
+            btn.disabled = true;
+
+            try {
+                const { error } = await window.supabase.from('users').update({
+                    name: name, class_name: className, gender: gender
+                }).eq('student_id', userId);
+
+                if(error) throw new Error(error.message);
+
+                alert("个人信息保存成功");
+                closeSettingsModal();
+                SearchApp.syncUser(); 
+            } catch(e) {
+                alert("保存失败: " + e.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
 
         const SearchApp = {
             state: { currentCategory: 'all', selectedStudentId: null, isDetailExpanded: false, debounceTimer: null },
@@ -142,7 +335,6 @@
                 if (currentUserId) this.selectArchive(currentUserId, true);
             },
             bindEvents() {
-                // 加入防抖防止每次按键都发请求
                 this.searchInput.addEventListener('input', (e) => {
                     clearTimeout(this.state.debounceTimer);
                     this.state.debounceTimer = setTimeout(() => this.handleSearch(e), 300);
@@ -159,21 +351,18 @@
             async handleSearch(e) {
                 const query = e.target.value.trim();
                 if (!query) { this.searchContainer.classList.remove('active'); return; }
-                
                 this.resultsBox.innerHTML = `<div class="p-6 text-center text-gray-400 text-xs font-bold uppercase"><i class="ph ph-spinner animate-spin"></i> 检索云端档案...</div>`;
                 this.searchContainer.classList.add('active');
-
                 const matches = await api.searchUsers(query);
                 if (!matches.length) this.resultsBox.innerHTML = `<div class="p-6 text-center text-gray-400 text-xs font-bold uppercase">未找到匹配档案</div>`;
                 else {
-                    this.resultsBox.innerHTML = matches.map(data => `<div onclick="SearchApp.selectArchive('${data.student_id}')" class="flex items-center gap-4 p-4 hover:bg-accentYellow/10 cursor-pointer border-b border-gray-50 transition-all group"><div class="w-10 h-10 rounded-full border border-gray-200 overflow-hidden shrink-0"><img src="${data.avatar}" class="w-full h-full object-cover"></div><div class="flex-1 overflow-hidden text-left"><div class="font-bold text-dark text-sm truncate">${data.name}</div><div class="text-[10px] text-gray-400 font-bold uppercase">ID: ${data.real_id}</div></div><i class="ph ph-caret-right text-gray-300"></i></div>`).join('');
+                    this.resultsBox.innerHTML = matches.map(data => `<div onclick="SearchApp.selectArchive('${data.student_id}')" class="flex items-center gap-4 p-4 hover:bg-accentYellow/10 cursor-pointer border-b border-gray-50 transition-all group"><div class="w-10 h-10 rounded-full border border-gray-200 overflow-hidden shrink-0"><img src="${data.avatar}" class="w-full h-full object-cover"></div><div class="flex-1 overflow-hidden text-left"><div class="font-bold text-dark text-sm truncate">${data.name}</div><div class="text-[10px] text-gray-400 font-bold uppercase">ID: ${data.student_id}</div></div><i class="ph ph-caret-right text-gray-300"></i></div>`).join('');
                 }
             },
             async selectArchive(id, autoExpand = false) {
                 this.state.selectedStudentId = id; this.state.isDetailExpanded = false; this.searchContainer.classList.remove('active'); this.searchInput.value = '';
                 const student = await api.getUser(id);
                 if (!student) return;
-
                 const isMale = student.gender === '男';
                 this.displayArea.innerHTML = `
                     <div class="animate-in fade-in duration-500">
@@ -181,16 +370,13 @@
                             <div class="w-48 h-48 rounded-[40px] overflow-hidden border-8 border-white shadow-xl shrink-0"><img src="${student.avatar}" class="w-full h-full object-cover"></div>
                             <div class="flex-1 w-full text-center md:text-left">
                                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                                    <div><div class="flex items-center justify-center md:justify-start gap-3 mb-1 text-left"><h2 class="text-4xl font-bold text-dark">${student.name}</h2><span class="flex items-center gap-1.5 px-3 py-1 ${isMale ? 'bg-blue-50 text-blue-500 border-blue-100' : 'bg-pink-50 text-pink-500 border-pink-100'} text-[10px] font-bold rounded-full border uppercase"><i class="ph-bold ${isMale ? 'ph-gender-male' : 'ph-gender-female'} text-xs"></i> ${student.gender}</span></div><p class="text-gray-400 font-bold text-sm tracking-widest uppercase text-left">ID: ${student.real_id}</p></div>
+                                    <div><div class="flex items-center justify-center md:justify-start gap-3 mb-1 text-left"><h2 class="text-4xl font-bold text-dark">${student.name}</h2><span class="flex items-center gap-1.5 px-3 py-1 ${isMale ? 'bg-blue-50 text-blue-500 border-blue-100' : 'bg-pink-50 text-pink-500 border-pink-100'} text-[10px] font-bold rounded-full border uppercase"><i class="ph-bold ${isMale ? 'ph-gender-male' : 'ph-gender-female'} text-xs"></i> ${student.gender}</span></div><p class="text-gray-400 font-bold text-sm tracking-widest uppercase text-left">ID: ${student.student_id}</p></div>
                                     <button onclick="SearchApp.toggleDetail()" class="bg-dark text-white px-8 py-3 rounded-2xl text-sm font-bold transition shadow-lg active:scale-95"><span id="permission-btn-text">点击查看档案</span></button>
                                 </div>
                                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-y-8 gap-x-4 text-left">
-                                    <div class="space-y-1"><p class="text-[10px] font-bold text-gray-400 uppercase">班级</p><p class="font-bold text-dark text-sm">${student.class_name}</p></div>
-                                    <div class="space-y-1"><p class="text-[10px] font-bold text-gray-400 uppercase">民族</p><p class="font-bold text-dark text-sm">${student.ethnicity}</p></div>
-                                    <div class="space-y-1"><p class="text-[10px] font-bold text-gray-400 uppercase">面貌</p><p class="font-bold text-dark text-sm">${student.politics}</p></div>
-                                    <div class="space-y-1"><p class="text-[10px] font-bold text-gray-400 uppercase">入学</p><p class="font-bold text-dark text-sm">${student.enrollment}</p></div>
-                                    <div class="space-y-1 lg:col-span-2"><p class="text-[10px] font-bold text-gray-400 uppercase">职务</p><p class="font-bold text-dark text-sm">${student.position}</p></div>
-                                    <div class="space-y-1 col-span-2"><p class="text-xs font-bold text-accentGreen flex items-center gap-1.5 mt-1"><i class="ph-fill ph-check-circle"></i> 数据已认证</p></div>
+                                    <div class="space-y-1"><p class="text-[10px] font-bold text-gray-400 uppercase">班级</p><p class="font-bold text-dark text-sm">${student.class_name || '未分配'}</p></div>
+                                    <div class="space-y-1"><p class="text-[10px] font-bold text-gray-400 uppercase">面貌</p><p class="font-bold text-dark text-sm">${student.politics || '群众'}</p></div>
+                                    <div class="space-y-1 col-span-2 text-left"><p class="text-xs font-bold text-accentGreen flex items-center gap-1.5 mt-1"><i class="ph-fill ph-check-circle"></i> 数据已认证</p></div>
                                 </div>
                             </div>
                         </div>
@@ -209,21 +395,20 @@
                 try {
                     const data = await api.getArchives(this.state.selectedStudentId, this.state.currentCategory);
                     let html = '';
-                    if ((this.state.currentCategory === 'all' || this.state.currentCategory === 'academic') && data.academic && data.academic.length > 0) html += this.getAcademicLayout(data.academic);
-                    if ((this.state.currentCategory === 'all' || this.state.currentCategory === 'health') && data.health && data.health.length > 0) html += this.getHealthLayout(data.health);
-                    if ((this.state.currentCategory === 'all' || this.state.currentCategory === 'award') && data.award && data.award.length > 0) html += this.getAwardsLayout(data.award);
-                    else if ((this.state.currentCategory === 'all' || this.state.currentCategory === 'award') && data.awards && data.awards.length > 0) html += this.getAwardsLayout(data.awards);
+                    if ((this.state.currentCategory === 'all' || this.state.currentCategory === 'academic') && data.academic?.length) html += this.getAcademicLayout(data.academic);
+                    if ((this.state.currentCategory === 'all' || this.state.currentCategory === 'health') && data.health?.length) html += this.getHealthLayout(data.health);
+                    if ((this.state.currentCategory === 'all' || this.state.currentCategory === 'award') && data.award?.length) html += this.getAwardsLayout(data.award);
                     wrapper.innerHTML = html || `<div class="py-20 text-center text-gray-400"><i class="ph ph-mask-sad text-4xl mb-4"></i><p class="font-medium">无相关档案记录</p></div>`;
                 } catch (e) { wrapper.innerHTML = "档案数据解析错误"; }
             },
             getAcademicLayout(records) {
-                return `<div class="space-y-8 animate-in fade-in duration-500 text-left"><div class="flex items-center gap-3 border-l-4 border-accentBlue pl-4"><div><h3 class="text-2xl font-bold text-dark">学术成绩档案</h3></div></div><div class="space-y-6">` + records.flat().map(exam => `<div class="group bg-bg rounded-3xl p-6 border border-transparent hover:border-accentBlue hover:bg-white hover:shadow-soft transition-all cursor-pointer"><div class="flex justify-between items-center text-left"><div class="flex items-center gap-4 text-left"><div class="w-12 h-12 rounded-2xl bg-accentBlue/20 text-accentBlue flex items-center justify-center text-2xl"><i class="ph ph-book-open"></i></div><div><h4 class="font-bold text-dark">${exam.title}</h4><p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${exam.tag || '阶段考试'} · ${exam.date}</p></div></div><span class="px-3 py-1 bg-white text-[10px] font-bold rounded-full border text-gray-400 group-hover:bg-accentBlue group-hover:text-white transition-colors">查看详情 <i class="ph ph-caret-down ml-1"></i></span></div><div class="card-expand-content text-left"><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 mt-6"><div class="bg-gray-50/50 rounded-2xl p-5 border"><p class="text-[10px] font-bold text-gray-400 uppercase mb-2">考试总分</p><div class="flex items-baseline gap-1"><span class="text-3xl font-bold text-dark">${exam.totalScore}</span><span class="text-gray-400 text-sm">/ ${exam.totalMax}</span></div></div><div class="bg-gray-50/50 rounded-2xl p-5 border"><p class="text-[10px] font-bold text-gray-400 uppercase mb-2">年级排名</p><span class="text-3xl font-bold text-dark">#${exam.gradeRank}</span></div></div>${exam.subjects && exam.subjects.length > 0 ? `<div class="overflow-x-auto"><table class="w-full text-left"><thead class="border-b"><tr class="text-[10px] font-bold text-gray-400 uppercase"><th class="py-3">科目</th><th class="py-3">得分</th><th class="py-3">年级平均</th><th class="py-3 text-right">变动</th></tr></thead><tbody class="divide-y divide-gray-50">${exam.subjects.map(s => `<tr><td class="py-3 font-bold text-dark text-sm">${s.name}</td><td class="py-3 font-bold text-dark text-sm">${s.score}</td><td class="py-3 text-gray-400 text-xs">${s.avg}</td><td class="py-3 text-right font-bold text-[10px] ${s.changeColor}">${s.change}</td></tr>`).join('')}</tbody></table></div>` : ''}</div></div>`).join('') + `</div></div>`;
+                return `<div class="space-y-8 animate-in fade-in duration-500 text-left"><div class="flex items-center gap-3 border-l-4 border-accentBlue pl-4"><h3 class="text-2xl font-bold text-dark">学术成绩档案</h3></div><div class="space-y-6">` + records.map(exam => `<div class="group bg-bg rounded-3xl p-6 border border-transparent hover:border-accentBlue hover:bg-white hover:shadow-soft transition-all cursor-pointer"><div class="flex justify-between items-center"><div class="flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-accentBlue/20 text-accentBlue flex items-center justify-center text-2xl"><i class="ph ph-book-open"></i></div><div><h4 class="font-bold text-dark">${exam.title}</h4><p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${exam.date}</p></div></div><span class="px-3 py-1 bg-white text-[10px] font-bold rounded-full border text-gray-400 group-hover:bg-accentBlue group-hover:text-white transition-colors">查看详情</span></div><div class="card-expand-content text-left"><div class="grid grid-cols-2 gap-6 mt-6"><div class="bg-gray-50/50 rounded-2xl p-5 border"><p class="text-[10px] text-gray-400 uppercase mb-2">考试总分</p><span class="text-3xl font-bold">${exam.totalScore}</span></div><div class="bg-gray-50/50 rounded-2xl p-5 border"><p class="text-[10px] text-gray-400 uppercase mb-2">排名</p><span class="text-3xl font-bold">#${exam.gradeRank}</span></div></div></div></div>`).join('') + `</div></div>`;
             },
             getHealthLayout(records) {
-                return `<div class="space-y-8 animate-in fade-in duration-500 text-left"><div class="flex items-center gap-3 border-l-4 border-accentGreen pl-4"><div><h3 class="text-2xl font-bold text-dark">体质健康监测</h3></div></div><div class="space-y-6">` + records.flat().map(report => `<div class="group bg-bg rounded-3xl p-6 border border-transparent hover:border-accentGreen hover:bg-white hover:shadow-soft transition-all cursor-pointer"><div class="flex justify-between items-center text-left"><div class="flex items-center gap-4 text-left"><div class="w-12 h-12 rounded-2xl bg-accentGreen/20 text-accentGreen flex items-center justify-center text-2xl"><i class="ph ph-heartbeat"></i></div><div><h4 class="font-bold text-dark">${report.title}</h4><p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${report.date}</p></div></div><span class="px-3 py-1 bg-white text-[10px] font-bold rounded-full border text-gray-400 group-hover:bg-accentGreen group-hover:text-white transition-colors">查看详情 <i class="ph ph-caret-down ml-1"></i></span></div><div class="card-expand-content text-left"><div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 mt-6">${(report.details||[]).slice(0, 4).map(d => `<div class="bg-gray-50/50 rounded-2xl p-4 border"><p class="text-[10px] font-bold text-gray-400 uppercase mb-1">${d.item}</p><p class="text-xl font-bold text-dark">${d.value}</p><p class="text-[9px] font-bold ${d.color} mt-0.5 uppercase flex items-center gap-1"><i class="ph-fill ph-circle"></i> ${d.status}</p></div>`).join('')}</div><div class="p-5 bg-gray-50/50 rounded-2xl border text-left mb-6"><p class="text-[10px] font-bold text-gray-400 uppercase mb-2 flex items-center gap-2"><i class="ph-fill ph-notebook"></i> 综合评定</p><p class="text-xs text-dark leading-relaxed">${report.result_summary}</p></div></div></div>`).join('') + `</div></div>`;
+                return `<div class="space-y-8 animate-in fade-in duration-500 text-left"><div class="flex items-center gap-3 border-l-4 border-accentGreen pl-4"><h3 class="text-2xl font-bold text-dark">体质健康监测</h3></div><div class="space-y-6">` + records.map(report => `<div class="group bg-bg rounded-3xl p-6 border border-transparent hover:border-accentGreen hover:bg-white hover:shadow-soft transition-all cursor-pointer"><div class="flex justify-between items-center"><div class="flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-accentGreen/20 text-accentGreen flex items-center justify-center text-2xl"><i class="ph ph-heartbeat"></i></div><div><h4 class="font-bold text-dark">${report.title}</h4><p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${report.date}</p></div></div></div><div class="card-expand-content text-left"><p class="text-sm mt-4 text-gray-600">${report.result_summary}</p></div></div>`).join('') + `</div></div>`;
             },
             getAwardsLayout(records) {
-                return `<div class="space-y-8 animate-in fade-in duration-500 text-left"><div class="flex items-center gap-3 border-l-4 border-accentOrange pl-4"><div><h3 class="text-2xl font-bold text-dark">荣誉与奖惩记录</h3></div></div><div class="space-y-4">` + records.flat().map(a => `<div class="group bg-bg rounded-3xl p-6 border border-transparent hover:border-accentOrange hover:bg-white hover:shadow-soft transition-all cursor-pointer"><div class="flex justify-between items-start text-left"><div class="flex items-center gap-4 text-left"><div class="w-12 h-12 rounded-2xl ${a.type === 'Honor' ? 'bg-accentYellow/20 text-accentYellow' : 'bg-accentRed/20 text-accentRed'} flex items-center justify-center text-2xl"><i class="${a.type === 'Honor' ? 'ph ph-medal' : 'ph ph-warning-octagon'}"></i></div><div><h4 class="font-bold text-dark">${a.item}</h4><p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${a.date} · ${a.issuer}</p></div></div><span class="px-3 py-1 bg-white text-[10px] font-bold rounded-full border text-gray-400 group-hover:bg-accentOrange group-hover:text-white transition-colors">档案详情 <i class="ph ph-caret-down ml-1"></i></span></div><div class="card-expand-content text-left"><p class="text-xs text-gray-500 leading-relaxed mt-4">${a.description}</p></div></div>`).join('') + `</div></div>`;
+                return `<div class="space-y-8 animate-in fade-in duration-500 text-left"><div class="flex items-center gap-3 border-l-4 border-accentOrange pl-4"><h3 class="text-2xl font-bold text-dark">荣誉与奖惩记录</h3></div><div class="space-y-4">` + records.map(a => `<div class="group bg-bg rounded-3xl p-6 border border-transparent hover:border-accentOrange hover:bg-white hover:shadow-soft transition-all cursor-pointer"><div class="flex justify-between items-start"><div class="flex items-center gap-4"><div class="w-12 h-12 rounded-2xl ${a.type === 'Honor' ? 'bg-accentYellow/20 text-accentYellow' : 'bg-accentRed/20 text-accentRed'} flex items-center justify-center text-2xl"><i class="${a.type === 'Honor' ? 'ph ph-medal' : 'ph ph-warning-octagon'}"></i></div><div><h4 class="font-bold text-dark">${a.item}</h4><p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${a.date} · ${a.issuer}</p></div></div></div><div class="card-expand-content text-left"><p class="text-xs text-gray-500 leading-relaxed mt-4">${a.description}</p></div></div>`).join('') + `</div></div>`;
             }
         };
 
