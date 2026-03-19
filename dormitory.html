@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="no-scrollbar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusLife - 智慧宿管中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const _supabaseUrl = 'https://rrkyvgexkadfkucokmyv.supabase.co';
+        const _supabaseKey = 'sb_publishable_K1G2kk2BaS42t9IYQC3Nkw_v8n-H4ef';
+        window.supabase = supabase.createClient(_supabaseUrl, _supabaseKey);
+    </script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['DM Sans', 'sans-serif'], serif: ['"Noto Serif SC"', 'serif'] },
+                    colors: { bg: '#F3F0EA', cardLight: '#FDFBF7', dark: '#1A1B1F', accentYellow: '#FFD646', accentOrange: '#FF9B85', accentRed: '#FF6B6B', accentBlue: '#A0C4FF', accentPurple: '#BDB2FF', accentGreen: '#16A34A', textDark: '#1F2937' },
+                    boxShadow: { 'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)' }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none !important; }
+        html { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+    </style>
+</head>
+<body class="bg-bg min-h-screen text-textDark selection:bg-accentYellow selection:text-dark no-scrollbar font-sans text-left relative">
+
+    <div class="max-w-[75%] mx-auto relative flex flex-col pt-4 pb-12 min-h-screen">
+        <main class="flex-1 p-6 lg:p-12 block">
+            <!-- 头部 -->
+            <header class="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-10">
+                <div>
+                    <h1 class="text-3xl lg:text-4xl font-bold text-dark tracking-tight">智慧宿管中心</h1>
+                    <p class="text-gray-400 text-sm mt-2">查看宿舍分配、在线报修、费用查询及访客预约审批。</p>
+                </div>
+                <div class="flex items-center gap-4 mt-6 lg:mt-0">
+                    <button onclick="window.location.href='index.html'" class="bg-white border border-gray-100 px-6 py-2.5 rounded-full shadow-sm text-sm font-bold text-dark hover:bg-gray-50 transition active:scale-95 flex items-center gap-2">
+                        <i class="ph-bold ph-house text-lg"></i> 返回首页
+                    </button>
+                    <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm"><img id="header-avatar" src="" class="w-full h-full object-cover bg-white"></div>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <!-- 宿舍卡片 -->
+                <div class="lg:col-span-2 bg-dark rounded-[32px] p-8 lg:p-10 shadow-soft text-white relative overflow-hidden flex flex-col justify-between min-h-[280px]">
+                    <div class="absolute top-[-20%] right-[-10%] w-64 h-64 rounded-full bg-accentPurple filter blur-[80px] opacity-40"></div>
+                    <div class="relative z-10 flex justify-between items-start">
+                        <div>
+                            <span class="px-3 py-1 bg-white/10 border border-white/20 rounded-full text-[10px] font-bold uppercase tracking-widest text-accentPurple mb-4 inline-block">My Dormitory</span>
+                            <h2 class="text-4xl font-bold mb-2" id="d-build">加载中...</h2>
+                            <p class="text-gray-300 font-bold tracking-widest uppercase" id="d-roombed">--- 房间 | --- 床位</p>
+                        </div>
+                        <div class="w-16 h-16 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center text-3xl"><i class="ph-fill ph-bed text-white"></i></div>
+                    </div>
+                    <div class="relative z-10 mt-8 flex gap-4">
+                        <button onclick="DormApp.openModal('repair')" class="px-6 py-3 bg-white text-dark rounded-xl text-sm font-bold shadow-md hover:scale-105 transition flex items-center gap-2"><i class="ph-bold ph-wrench"></i> 快速报修</button>
+                        <button onclick="DormApp.openModal('visitor')" class="px-6 py-3 bg-white/10 text-white border border-white/20 rounded-xl text-sm font-bold hover:bg-white/20 transition flex items-center gap-2"><i class="ph-bold ph-user-plus"></i> 访客申请</button>
+                    </div>
+                </div>
+
+                <!-- 水电费卡片 -->
+                <div class="bg-cardLight rounded-[32px] p-8 border border-gray-100 shadow-soft flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-dark flex items-center gap-2 mb-6"><i class="ph-fill ph-lightning text-accentYellow text-xl"></i> 宿舍余量清单</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100">
+                                <span class="text-sm font-bold text-gray-500 flex items-center gap-2"><i class="ph-bold ph-drop text-accentBlue"></i> 水费余额</span>
+                                <span class="text-lg font-bold text-dark" id="f-water">¥ 0.00</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100">
+                                <span class="text-sm font-bold text-gray-500 flex items-center gap-2"><i class="ph-bold ph-lightning text-accentYellow"></i> 电费余额</span>
+                                <span class="text-lg font-bold text-dark" id="f-elec">¥ 0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="DormApp.openModal('fee')" class="w-full mt-6 py-3 border-2 border-dark text-dark rounded-xl text-sm font-bold hover:bg-dark hover:text-white transition">在线充值缴费</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- 报修记录 -->
+                <div class="bg-cardLight rounded-[32px] p-8 border border-gray-100 shadow-soft">
+                    <h3 class="text-lg font-bold text-dark mb-6 flex items-center gap-2"><i class="ph-fill ph-wrench text-gray-400"></i> 我的报修记录</h3>
+                    <div id="repair-list" class="space-y-3 max-h-[300px] overflow-y-auto no-scrollbar pr-2">
+                        <div class="text-center text-gray-400 py-10 text-xs font-bold">获取中...</div>
+                    </div>
+                </div>
+
+                <!-- 访客记录 -->
+                <div class="bg-cardLight rounded-[32px] p-8 border border-gray-100 shadow-soft">
+                    <h3 class="text-lg font-bold text-dark mb-6 flex items-center gap-2"><i class="ph-fill ph-users text-gray-400"></i> 访客预约状态</h3>
+                    <div id="visitor-list" class="space-y-3 max-h-[300px] overflow-y-auto no-scrollbar pr-2">
+                        <div class="text-center text-gray-400 py-10 text-xs font-bold">获取中...</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 统一业务弹窗 -->
+    <div id="action-modal" class="fixed inset-0 z-[500] bg-dark/60 backdrop-blur-sm flex items-center justify-center hidden">
+        <div class="bg-white w-full max-w-md rounded-[32px] shadow-2xl p-8 mx-4 transform transition-all">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold" id="m-title">---</h3>
+                <button onclick="DormApp.closeModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition"><i class="ph-bold ph-x"></i></button>
+            </div>
+            <div id="m-body" class="space-y-4 mb-8"></div>
+            <button id="m-submit" class="w-full bg-dark text-white py-4 rounded-xl font-bold text-sm shadow-md hover:bg-opacity-90 transition">提交</button>
+        </div>
+    </div>
+
+    <script>
+        const currentUserId = localStorage.getItem('edu_space_user');
+        if (!currentUserId || localStorage.getItem('edu_space_role') !== 'student') {
+            window.location.href = 'login.html';
+        }
+
+        const DormApp = {
+            state: { dormData: null },
+
+            async init() {
+                const { data: user } = await window.supabase.from('users').select('avatar').eq('student_id', currentUserId).single();
+                if(user) document.getElementById('header-avatar').src = user.avatar;
+                await this.fetchData();
+            },
+
+            async fetchData() {
+                const { data } = await window.supabase.from('archives').select('dormitory').eq('student_id', currentUserId).single();
+                this.state.dormData = data?.dormitory || { info: {}, fees: {water: 0, electricity: 0}, repairs: [], visitors: [] };
+                this.renderUI();
+            },
+
+            renderUI() {
+                const d = this.state.dormData;
+                // Info
+                if(d.info.building) {
+                    document.getElementById('d-build').textContent = d.info.building;
+                    document.getElementById('d-roombed').textContent = `${d.info.room || '--'} 房间 | ${d.info.bed || '--'} 床位`;
+                } else {
+                    document.getElementById('d-build').textContent = '未分配宿舍';
+                    document.getElementById('d-roombed').textContent = '请联系教务后勤中心分配';
+                }
+                
+                // Fees
+                document.getElementById('f-water').textContent = `¥ ${(d.fees.water||0).toFixed(2)}`;
+                document.getElementById('f-elec').textContent = `¥ ${(d.fees.electricity||0).toFixed(2)}`;
+
+                // Repairs
+                const rList = document.getElementById('repair-list');
+                if(d.repairs && d.repairs.length) {
+                    rList.innerHTML = d.repairs.map(r => `
+                        <div class="bg-white p-4 rounded-2xl border border-gray-100 flex justify-between items-center">
+                            <div><h4 class="font-bold text-sm">${r.item}</h4><p class="text-[10px] text-gray-400 font-bold mt-1 tracking-widest">${r.date}</p></div>
+                            <span class="px-3 py-1 rounded text-[10px] font-bold ${r.status==='已处理'?'bg-accentGreen/10 text-accentGreen':'bg-accentOrange/10 text-accentOrange'}">${r.status}</span>
+                        </div>
+                    `).join('');
+                } else rList.innerHTML = '<div class="text-center text-gray-400 py-10 text-xs font-bold">暂无报修记录</div>';
+
+                // Visitors
+                const vList = document.getElementById('visitor-list');
+                if(d.visitors && d.visitors.length) {
+                    vList.innerHTML = d.visitors.map(v => {
+                        let color = 'bg-gray-100 text-gray-500';
+                        if(v.status === '已批准') color = 'bg-accentGreen/10 text-accentGreen';
+                        if(v.status === '已拒绝') color = 'bg-accentRed/10 text-accentRed';
+                        return `
+                        <div class="bg-white p-4 rounded-2xl border border-gray-100 flex justify-between items-center">
+                            <div><h4 class="font-bold text-sm">${v.name} <span class="text-gray-400 text-xs ml-1">(${v.relation})</span></h4><p class="text-[10px] text-gray-400 font-bold mt-1 tracking-widest">预约来访: ${v.date}</p></div>
+                            <span class="px-3 py-1 rounded text-[10px] font-bold ${color}">${v.status}</span>
+                        </div>`;
+                    }).join('');
+                } else vList.innerHTML = '<div class="text-center text-gray-400 py-10 text-xs font-bold">暂无访客预约</div>';
+            },
+
+            openModal(type) {
+                const title = document.getElementById('m-title');
+                const body = document.getElementById('m-body');
+                const submit = document.getElementById('m-submit');
+
+                if(!this.state.dormData.info.building && type !== 'fee') {
+                    return alert("您暂未分配宿舍，无法进行此操作。");
+                }
+
+                if(type === 'repair') {
+                    title.textContent = '新增报修申请';
+                    body.innerHTML = `
+                        <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">报修项目</label><input type="text" id="r-item" placeholder="如：空调漏水、床板损坏" class="w-full border border-gray-100 bg-gray-50 rounded-xl p-3 text-sm font-bold outline-none focus:border-accentBlue"></div>
+                        <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">情况说明</label><textarea id="r-desc" class="w-full border border-gray-100 bg-gray-50 rounded-xl p-3 text-sm font-bold h-24 outline-none focus:border-accentBlue" placeholder="简述损坏情况..."></textarea></div>
+                    `;
+                    submit.onclick = () => this.submitData('repair');
+                } else if(type === 'visitor') {
+                    title.textContent = '访客预约登记';
+                    body.innerHTML = `
+                        <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">访客姓名</label><input type="text" id="v-name" placeholder="来访者真实姓名" class="w-full border border-gray-100 bg-gray-50 rounded-xl p-3 text-sm font-bold outline-none focus:border-accentBlue"></div>
+                        <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">与本人关系</label><input type="text" id="v-rel" placeholder="如：父亲、母亲、朋友" class="w-full border border-gray-100 bg-gray-50 rounded-xl p-3 text-sm font-bold outline-none focus:border-accentBlue"></div>
+                        <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">来访日期</label><input type="date" id="v-date" class="w-full border border-gray-100 bg-gray-50 rounded-xl p-3 text-sm font-bold outline-none focus:border-accentBlue"></div>
+                    `;
+                    submit.onclick = () => this.submitData('visitor');
+                } else if(type === 'fee') {
+                    title.textContent = '在线缴纳水电费';
+                    body.innerHTML = `
+                        <div class="bg-accentYellow/10 text-accentOrange p-3 rounded-xl text-xs font-bold mb-4">演示环境：点击提交直接模拟充值成功。</div>
+                        <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">充值项目</label><select id="f-type" class="w-full border border-gray-100 bg-gray-50 rounded-xl p-3 text-sm font-bold outline-none"><option value="water">生活水费</option><option value="electricity">宿舍电费</option></select></div>
+                        <div><label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">充值金额 (元)</label><input type="number" id="f-amount" value="50" class="w-full border border-gray-100 bg-gray-50 rounded-xl p-3 text-sm font-bold outline-none"></div>
+                    `;
+                    submit.onclick = () => this.submitData('fee');
+                }
+                document.getElementById('action-modal').classList.remove('hidden');
+            },
+
+            closeModal() { document.getElementById('action-modal').classList.add('hidden'); },
+
+            async submitData(type) {
+                const btn = document.getElementById('m-submit');
+                const orig = btn.textContent; btn.textContent = '提交中...'; btn.disabled = true;
+                
+                try {
+                    const dateStr = new Date().toLocaleDateString('zh-CN').replace(/\//g, '.');
+                    let dataToUpdate = JSON.parse(JSON.stringify(this.state.dormData)); // deep copy
+                    
+                    if(type === 'repair') {
+                        const item = document.getElementById('r-item').value.trim();
+                        if(!item) throw new Error("请填写报修项目");
+                        dataToUpdate.repairs.unshift({ id: Date.now(), item: item, date: dateStr, status: '待处理' });
+                    } else if(type === 'visitor') {
+                        const name = document.getElementById('v-name').value.trim();
+                        const rel = document.getElementById('v-rel').value.trim();
+                        const vdate = document.getElementById('v-date').value;
+                        if(!name || !rel || !vdate) throw new Error("请填写完整信息");
+                        dataToUpdate.visitors.unshift({ id: Date.now(), name: name, relation: rel, date: vdate.replace(/-/g, '.'), status: '审核中' });
+                    } else if(type === 'fee') {
+                        const fType = document.getElementById('f-type').value;
+                        const amount = parseFloat(document.getElementById('f-amount').value);
+                        if(isNaN(amount) || amount <= 0) throw new Error("金额错误");
+                        if(!dataToUpdate.fees[fType]) dataToUpdate.fees[fType] = 0;
+                        dataToUpdate.fees[fType] += amount;
+                    }
+
+                    const { error } = await window.supabase.from('archives').update({ dormitory: dataToUpdate }).eq('student_id', currentUserId);
+                    if(error) throw error;
+                    
+                    alert("操作成功！");
+                    this.state.dormData = dataToUpdate;
+                    this.renderUI();
+                    this.closeModal();
+                } catch(e) {
+                    alert(e.message);
+                } finally {
+                    btn.textContent = orig; btn.disabled = false;
+                }
+            }
+        };
+
+        window.onload = () => DormApp.init();
+    </script>
+</body>
+</html>

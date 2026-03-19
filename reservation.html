@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="no-scrollbar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusLife - 场地预约中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- 引入 Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        const _supabaseUrl = 'https://rrkyvgexkadfkucokmyv.supabase.co';
+        const _supabaseKey = 'sb_publishable_K1G2kk2BaS42t9IYQC3Nkw_v8n-H4ef';
+        window.supabase = supabase.createClient(_supabaseUrl, _supabaseKey);
+    </script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['DM Sans', 'sans-serif'], serif: ['"Noto Serif SC"', 'serif'] },
+                    colors: { bg: '#F3F0EA', cardLight: '#FDFBF7', dark: '#1A1B1F', accentYellow: '#FFD646', accentOrange: '#FF9B85', accentRed: '#FF6B6B', accentBlue: '#A0C4FF', accentPurple: '#BDB2FF', accentGreen: '#16A34A', textDark: '#1F2937' },
+                    boxShadow: { 'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)', 'hover-glow': '0 12px 30px -4px rgba(0, 0, 0, 0.06)' },
+                    animation: { 'pop-in': 'popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' },
+                    keyframes: { popIn: { '0%': { opacity: 0, transform: 'scale(0.8)' }, '100%': { opacity: 1, transform: 'scale(1)' } } }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none !important; }
+        html { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        .panel-transition { transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
+        .slot-btn { transition: all 0.2s ease; }
+        .slot-btn:active:not(:disabled) { transform: scale(0.95); }
+    </style>
+</head>
+<body class="bg-bg min-h-screen text-textDark selection:bg-accentYellow selection:text-dark no-scrollbar font-sans text-left relative" onclick="ReservationApp.closeCalendar(event)">
+
+    <div class="max-w-[85%] mx-auto relative flex flex-col pt-4 pb-12 min-h-screen">
+        <main id="page-reservation" class="flex-1 p-6 lg:p-12 block">
+            <!-- 头部 -->
+            <header class="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-8">
+                <div>
+                    <h1 class="text-3xl lg:text-4xl font-bold text-dark tracking-tight">公共场地预约</h1>
+                    <p class="text-gray-400 text-sm mt-2">可视化楼层导航，实时锁定您的专属时段。</p>
+                </div>
+                <div class="flex items-center gap-4 mt-6 lg:mt-0">
+                    <button onclick="window.location.href='index.html'" class="bg-white border border-gray-100 px-6 py-2.5 rounded-full shadow-sm text-sm font-bold text-dark hover:bg-gray-50 transition active:scale-95 flex items-center gap-2">
+                        <i class="ph-bold ph-house text-lg"></i> 返回主页
+                    </button>
+                    <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm"><img id="header-avatar" src="" class="w-full h-full object-cover bg-white"></div>
+                </div>
+            </header>
+
+            <!-- 楼栋切换导航 -->
+            <div class="flex gap-4 overflow-x-auto no-scrollbar mb-8 pb-2" id="building-selector">
+                <!-- 由 JS 动态渲染 -->
+            </div>
+
+            <!-- 核心交互区：左右分栏流式布局 -->
+            <div class="flex flex-col lg:flex-row gap-8 items-start relative min-h-[700px]">
+                
+                <!-- 左侧：可视化楼层大盘 (Master) -->
+                <div id="venues-panel" class="w-full lg:w-full panel-transition flex flex-col gap-6">
+                    
+                    <!-- 建筑看板 -->
+                    <div class="bg-cardLight border border-gray-100 rounded-[28px] p-6 shadow-sm flex flex-col xl:flex-row justify-between xl:items-center gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 rounded-2xl bg-dark text-white flex items-center justify-center text-2xl shadow-md"><i class="ph-fill ph-buildings"></i></div>
+                            <div>
+                                <h2 class="text-xl font-bold text-dark" id="building-name">加载中...</h2>
+                                <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1" id="building-desc">---</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 可视化楼层容器 -->
+                    <div id="building-map" class="space-y-6 pb-12 transition-all duration-300">
+                        <!-- 动态渲染楼层和教室 -->
+                    </div>
+                </div>
+
+                <!-- 右侧：时间选择区 (Detail - 默认折叠隐藏) -->
+                <div id="datetime-panel" class="w-full lg:w-[0px] h-full opacity-0 overflow-hidden panel-transition shrink-0 bg-cardLight rounded-[32px] border border-gray-100 shadow-soft flex flex-col sticky top-6">
+                    <div class="p-8 h-full flex flex-col overflow-y-auto no-scrollbar min-h-[600px] max-h-[85vh]">
+                        
+                        <!-- 面板头部 -->
+                        <div class="flex items-start gap-4 mb-6 shrink-0">
+                            <button onclick="ReservationApp.closeDetail()" class="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-500 hover:text-dark hover:scale-105 transition-all shrink-0 mt-1">
+                                <i class="ph-bold ph-arrow-left text-lg"></i>
+                            </button>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-2xl font-bold text-dark truncate" id="selected-venue-name">教室名称</h3>
+                                    <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded border border-gray-200" id="selected-venue-floor">楼层</span>
+                                </div>
+                                <div id="selected-venue-info" class="flex flex-wrap items-center gap-x-2 gap-y-2 mt-3">
+                                    <!-- JS填充: 标签样式的人数上限、设施、指导要求 -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 智能日历下拉选择器 -->
+                        <div class="mb-8 shrink-0 relative" id="calendar-container">
+                            <h4 class="text-sm font-bold text-dark mb-4 flex items-center gap-2"><i class="ph-fill ph-calendar-blank text-accentBlue"></i> 预约日期</h4>
+                            
+                            <button id="date-btn" onclick="ReservationApp.toggleCalendar(event)" class="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 flex justify-between items-center shadow-sm hover:border-accentBlue transition-colors group">
+                                <div class="flex items-center gap-3">
+                                    <i class="ph-bold ph-calendar-blank text-gray-400 group-hover:text-accentBlue transition-colors"></i>
+                                    <span id="date-btn-text" class="font-bold text-dark text-sm">选择日期...</span>
+                                </div>
+                                <div id="date-btn-badge" class="px-2.5 py-1 rounded-md text-[10px] font-bold bg-gray-100 text-gray-500">待选择</div>
+                            </button>
+
+                            <!-- 日历展开面板 -->
+                            <div id="calendar-dropdown" class="absolute top-[85px] left-0 right-0 bg-white border border-gray-100 rounded-[24px] shadow-2xl p-5 z-50 opacity-0 invisible transform -translate-y-2 transition-all duration-200">
+                                <div class="flex justify-between items-center mb-3 px-2">
+                                    <h5 class="text-xs font-bold text-dark uppercase tracking-widest">未来30天趋势</h5>
+                                    <div class="flex items-center gap-2 text-[9px] font-bold text-gray-400">
+                                        <span class="flex items-center gap-1"><div class="w-2 h-2 rounded bg-green-100 border border-green-200"></div>空闲</span>
+                                        <span class="flex items-center gap-1"><div class="w-2 h-2 rounded bg-yellow-100 border border-yellow-200"></div>较多</span>
+                                        <span class="flex items-center gap-1"><div class="w-2 h-2 rounded bg-red-100 border border-red-200"></div>已满</span>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-7 gap-1 text-center mb-2 border-b border-gray-50 pb-2">
+                                    <div class="text-[10px] font-bold text-gray-400 py-1">日</div><div class="text-[10px] font-bold text-gray-400 py-1">一</div><div class="text-[10px] font-bold text-gray-400 py-1">二</div><div class="text-[10px] font-bold text-gray-400 py-1">三</div><div class="text-[10px] font-bold text-gray-400 py-1">四</div><div class="text-[10px] font-bold text-gray-400 py-1">五</div><div class="text-[10px] font-bold text-gray-400 py-1">六</div>
+                                </div>
+                                <div id="calendar-grid" class="grid grid-cols-7 gap-1.5">
+                                    <!-- 由 JS 渲染 -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 flex flex-col">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-sm font-bold text-dark flex items-center gap-2"><i class="ph-fill ph-clock text-accentOrange"></i> 选择未来时段 (多选)</h4>
+                            </div>
+                            <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-6" id="time-grid"></div>
+                        </div>
+
+                        <!-- 底部固定确认按钮 -->
+                        <div class="mt-auto pt-6 border-t border-gray-100 shrink-0">
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="text-sm text-gray-500 font-bold">已选时段</span>
+                                <span class="text-lg font-bold text-accentOrange" id="selected-count-label">0 个</span>
+                            </div>
+                            <button onclick="ReservationApp.openBookingForm()" id="btn-confirm" disabled class="w-full py-4 rounded-2xl font-bold text-sm shadow-lg transition-all flex justify-center items-center gap-2 bg-gray-200 text-gray-400 cursor-not-allowed">
+                                填写预约申请
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- 预约信息登记表单弹窗 -->
+    <div id="booking-form-modal" class="fixed inset-0 z-[400] bg-dark/60 backdrop-blur-sm flex items-center justify-center hidden">
+        <div class="bg-white w-full max-w-lg rounded-[32px] shadow-2xl p-8 mx-4 transform transition-all text-left">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-dark">完善预约信息</h3>
+                <button onclick="ReservationApp.closeBookingForm()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"><i class="ph-bold ph-x"></i></button>
+            </div>
+            
+            <div class="space-y-4 mb-8">
+                <div class="bg-blue-50/50 p-5 rounded-2xl border border-blue-100 mb-6 flex justify-between items-start">
+                    <div class="flex-1">
+                        <p class="text-base font-bold text-dark mb-1" id="form-venue-preview">室内篮球场 1号</p>
+                        <div id="form-venue-details" class="flex flex-wrap items-center gap-x-2 gap-y-2 mt-2 mb-3">
+                            <!-- JS 填充: 标签属性 -->
+                        </div>
+                        <p class="text-[11px] text-blue-600 font-bold" id="form-time-preview">2026-03-25 | 14:00, 15:00</p>
+                    </div>
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-500 shadow-sm shrink-0 ml-4"><i class="ph-bold ph-map-pin text-xl"></i></div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">预约理由</label>
+                    <select id="b-reason" class="w-full h-12 bg-gray-50 border border-gray-100 rounded-xl px-4 text-sm font-bold text-dark outline-none focus:border-accentBlue focus:bg-white transition-colors cursor-pointer box-border">
+                        <option>学术研讨 / 会议</option><option>社团活动</option><option>个人自习 / 练习</option><option>班级集体活动</option><option>其他</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">具体用处说明</label>
+                    <input type="text" id="b-purpose" placeholder="例如：辩论社招新面试" class="w-full h-12 bg-gray-50 border border-gray-100 rounded-xl px-4 text-sm font-bold text-dark outline-none focus:border-accentBlue focus:bg-white transition-colors placeholder:text-gray-400 box-border">
+                </div>
+                
+                <!-- 精准对齐：使用人数与协同使用者 -->
+                <div class="flex items-center gap-4 w-full">
+                    <div class="flex-1 flex flex-col">
+                        <label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">使用人数</label>
+                        <input type="number" id="b-pax" placeholder="例如： 5" class="w-full h-12 bg-gray-50 border border-gray-100 rounded-xl px-4 text-sm font-bold text-dark outline-none focus:border-accentBlue focus:bg-white transition-colors placeholder:text-gray-400 box-border">
+                    </div>
+                    <div class="flex-1 flex flex-col">
+                        <label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">协同使用者</label>
+                        <div class="w-full h-12 bg-gray-50 border border-gray-100 rounded-xl px-2 flex items-center gap-2 overflow-x-auto no-scrollbar transition-colors box-border">
+                            <div id="selected-cousers-container" class="flex items-center gap-2 h-full w-full">
+                                <!-- 动态渲染选中的头像 -->
+                                <button onclick="ReservationApp.openUserSelector()" class="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:text-accentBlue hover:border-accentBlue hover:bg-white transition-colors shrink-0" title="添加协同者">
+                                    <i class="ph-bold ph-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="ReservationApp.executeBooking()" id="btn-execute" class="w-full bg-dark text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-opacity-90 transition flex justify-center items-center gap-2">
+                <i class="ph-bold ph-check-circle"></i> 正式提交预约
+            </button>
+        </div>
+    </div>
+
+    <!-- 协同使用者选择器弹窗 -->
+    <div id="user-selector-modal" class="fixed inset-0 z-[450] bg-dark/60 backdrop-blur-sm flex items-center justify-center hidden">
+        <div class="bg-white w-full max-w-sm rounded-[32px] shadow-2xl p-6 mx-4 transform transition-all text-left flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-4 shrink-0">
+                <h3 class="text-lg font-bold text-dark">添加协同使用者</h3>
+                <button onclick="ReservationApp.closeUserSelector()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"><i class="ph-bold ph-x"></i></button>
+            </div>
+            
+            <div class="relative mb-4 shrink-0">
+                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="text" id="user-search-input" placeholder="搜索姓名、学号或班级..." oninput="ReservationApp.searchUser()" class="w-full bg-gray-50 border border-gray-100 rounded-xl py-2.5 pl-9 pr-4 text-sm font-medium outline-none focus:border-accentBlue">
+            </div>
+
+            <div id="user-selector-list" class="flex-1 overflow-y-auto no-scrollbar space-y-2 pr-1">
+                <!-- 用户列表动态渲染 -->
+            </div>
+
+            <button onclick="ReservationApp.closeUserSelector()" class="w-full mt-4 bg-dark text-white py-3 rounded-xl font-bold text-sm shadow-md hover:bg-opacity-90 transition shrink-0">
+                确定选择
+            </button>
+        </div>
+    </div>
+
+    <!-- 沉浸式成功动画弹窗 -->
+    <div id="success-modal" class="fixed inset-0 z-[500] bg-bg/80 backdrop-blur-md flex items-center justify-center hidden">
+        <div class="bg-white w-full max-w-sm rounded-[40px] shadow-2xl p-10 flex flex-col items-center text-center transform scale-90 opacity-0 transition-all duration-500" id="success-box">
+            <div class="w-24 h-24 rounded-full bg-accentGreen/10 text-accentGreen flex items-center justify-center text-5xl mb-6 relative">
+                <i class="ph-fill ph-check-circle animate-pop-in"></i>
+                <div class="absolute inset-0 rounded-full border-4 border-accentGreen/30 animate-ping"></div>
+            </div>
+            <h3 class="text-2xl font-bold text-dark mb-2">预约成功！</h3>
+            <p class="text-sm text-gray-500 mb-8 leading-relaxed" id="success-desc">您已成功预定...</p>
+            <button onclick="ReservationApp.closeSuccess()" class="w-full bg-dark text-white py-3.5 rounded-xl font-bold shadow-lg hover:scale-105 transition-transform">
+                完成并返回
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const currentUserId = localStorage.getItem('edu_space_user');
+        if (!currentUserId || localStorage.getItem('edu_space_role') !== 'student') {
+            window.location.href = 'login.html';
+        }
+
+        // --- 全量内置多楼栋与教室数据 (包含人数、设施、指导要求及维护原因) ---
+        const MOCK_BUILDINGS = [
+            { id: 'ZHL', name: '综合楼', desc: '实验与多媒体中心', floors: [
+                {
+                    level: 3, label: '3F', desc: '生物与艺术',
+                    rooms: [
+                        { id: 'C301', name: 'C301 生物实验室 A', type: '实验室', icon: 'ph-flask', status: 'available', capacity: 30, facilities: '实验台, 显微镜, 投影仪', supervision: true },
+                        { id: 'C302', name: 'C302 生物实验室 B', type: '实验室', icon: 'ph-flask', status: 'available', capacity: 30, facilities: '实验台, 显微镜, 投影仪', supervision: true },
+                        { id: 'CX3', name: '教师教研室', type: '办公', icon: 'ph-briefcase', status: 'locked', capacity: 15, facilities: '办公桌, 饮水机', supervision: false }, 
+                        { id: 'C303-305', name: 'C303-305 画廊', type: '艺术中心', icon: 'ph-palette', status: 'available', capacity: 50, facilities: '画架, 聚光灯, 展板', supervision: false }
+                    ]
+                },
+                {
+                    level: 2, label: '2F', desc: '化学与多媒体',
+                    rooms: [
+                        { id: 'C201', name: 'C201 化学实验室 A', type: '实验室', icon: 'ph-flask', status: 'available', capacity: 30, facilities: '通风橱, 水槽, 实验台', supervision: true },
+                        { id: 'C202', name: 'C202 化学实验室 B', type: '实验室', icon: 'ph-flask', status: 'available', capacity: 30, facilities: '通风橱, 水槽, 实验台', supervision: true },
+                        { id: 'CX2', name: '仪器储藏室', type: '仓库', icon: 'ph-archive', status: 'locked', capacity: 5, facilities: '置物架, 恒温柜', supervision: true },
+                        { id: 'C203', name: 'C203 地理实验室', type: '实验室', icon: 'ph-globe-hemisphere-west', status: 'available', capacity: 40, facilities: '数字沙盘, 投影仪, 电脑', supervision: false },
+                        { id: 'C204-205', name: 'C204-205 多媒体教室', type: '教室', icon: 'ph-presentation-chart', status: 'available', capacity: 60, facilities: '智能黑板, 广播系统', supervision: false }
+                    ]
+                },
+                {
+                    level: 1, label: '1F', desc: '音乐与物理',
+                    rooms: [
+                        { id: 'C101-103', name: 'C101-103 音乐厅', type: '艺术中心', icon: 'ph-music-notes', status: 'available', capacity: 150, facilities: '三角钢琴, 舞台, 音响系统', supervision: true },
+                        { id: 'C104', name: 'C104 物理实验室 A', type: '实验室', icon: 'ph-magnet', status: 'available', capacity: 30, facilities: '力学台, 电磁仪器', supervision: true },
+                        { id: 'C105', name: 'C105 物理实验室 B', type: '实验室', icon: 'ph-magnet', status: 'maintenance', capacity: 30, facilities: '光学台, 激光器', supervision: true, maintReason: '仪器高精度校准', maintDuration: '本周五下午' },
+                        { id: 'CX1', name: '设施间', type: '设施', icon: 'ph-door', status: 'locked', capacity: 0, facilities: '配电柜, 杂物', supervision: false }
+                    ]
+                }
+            ]},
+            { id: 'XZL', name: '行政楼', desc: '学生活动与行政', floors: [
+                {
+                    level: 4, label: '4F', desc: '高层办公',
+                    rooms: [ 
+                        { id: 'DX4', name: '校长办公室', type: '办公', icon: 'ph-briefcase', status: 'locked', capacity: 10, facilities: '办公桌, 会客沙发', supervision: false },
+                        { id: 'D403-404', name: 'D403-404 会议室 D', type: '大会议室', icon: 'ph-users-four', status: 'available', capacity: 100, facilities: '环形会议桌, 麦克风, 投影', supervision: false } 
+                    ]
+                },
+                {
+                    level: 3, label: '3F', desc: '研讨与档案',
+                    rooms: [
+                        { id: 'D305', name: 'D305 会议室 B', type: '会议室', icon: 'ph-users-three', status: 'available', capacity: 20, facilities: '长条会议桌, 白板', supervision: false },
+                        { id: 'DX3', name: '行政档案室', type: '办公', icon: 'ph-archive', status: 'locked', capacity: 5, facilities: '档案柜, 碎纸机', supervision: true },
+                        { id: 'D306', name: 'D306 会议室 C', type: '会议室', icon: 'ph-users-three', status: 'available', capacity: 30, facilities: 'U型会议桌, 视频会议系统', supervision: false }
+                    ]
+                },
+                {
+                    level: 2, label: '2F', desc: '学生活动',
+                    rooms: [
+                        { id: 'D207', name: 'D207 会议室 A', type: '会议室', icon: 'ph-users-three', status: 'available', capacity: 15, facilities: '圆桌, 电视屏幕', supervision: false },
+                        { id: 'D208-210', name: 'D208-210 活动中心', type: '活动中心', icon: 'ph-users', status: 'available', capacity: 80, facilities: '活动空地, 音响, 储物柜', supervision: false }
+                    ]
+                }
+            ]},
+            { id: 'TYG', name: '体育馆', desc: '运动与健康发展', floors: [
+                {
+                    level: 3, label: '3F', desc: '形体训练',
+                    rooms: [
+                        { id: 'TYG-301', showId: false, name: '体操房', type: '运动场馆', icon: 'ph-person', status: 'available', capacity: 40, facilities: '体操垫, 把杆, 镜面墙', supervision: true },
+                        { id: 'TYG-302', showId: false, name: '瑜伽室', type: '运动场馆', icon: 'ph-person-simple-walk', status: 'available', capacity: 25, facilities: '瑜伽砖, 瑜伽球', supervision: false }
+                    ]
+                },
+                {
+                    level: 2, label: '2F', desc: '室内综合球馆',
+                    rooms: [
+                        { id: 'TYG-201', showId: false, name: '室内篮球场 A', type: '运动场馆', icon: 'ph-basketball', status: 'available', capacity: 50, facilities: '标准全场, 计分板', supervision: false },
+                        { id: 'TYG-202', showId: false, name: '室内篮球场 B', type: '运动场馆', icon: 'ph-basketball', status: 'available', capacity: 50, facilities: '标准全场, 计分板', supervision: false },
+                        { id: 'TYG-203', showId: false, name: '室内羽毛球场 1', type: '运动场馆', icon: 'ph-tennis-ball', status: 'available', capacity: 8, facilities: '标准场地, 休息区', supervision: false },
+                        { id: 'TYG-204', showId: false, name: '室内羽毛球场 2', type: '运动场馆', icon: 'ph-tennis-ball', status: 'available', capacity: 8, facilities: '标准场地, 休息区', supervision: false },
+                        { id: 'TYG-205', showId: false, name: '室内羽毛球场 3', type: '运动场馆', icon: 'ph-tennis-ball', status: 'available', capacity: 8, facilities: '标准场地, 休息区', supervision: false },
+                        { id: 'TYG-206', showId: false, name: '室内羽毛球场 4', type: '运动场馆', icon: 'ph-tennis-ball', status: 'available', capacity: 8, facilities: '标准场地, 休息区', supervision: false }
+                    ]
+                },
+                {
+                    level: 1, label: '1F', desc: '水上与小球中心',
+                    rooms: [
+                        { id: 'TYG-101', showId: false, name: '游泳池', type: '运动场馆', icon: 'ph-waves', status: 'free', capacity: 100, facilities: '50m标准泳道, 淋浴间', supervision: true },
+                        { id: 'TYG-102', showId: false, name: '乒乓球房', type: '运动场馆', icon: 'ph-tennis-ball', status: 'free', capacity: 20, facilities: '标准球桌(10张), 发球机', supervision: false }
+                    ]
+                },
+                {
+                    level: 0, label: '室外', desc: '露天操场',
+                    rooms: [
+                        { id: 'TYG-O1', showId: false, name: '足球场 A', type: '运动场馆', icon: 'ph-soccer-ball', status: 'available', capacity: 60, facilities: '11人制草坪, 夜间照明', supervision: false },
+                        { id: 'TYG-O2', showId: false, name: '足球场 B', type: '运动场馆', icon: 'ph-soccer-ball', status: 'maintenance', capacity: 60, facilities: '11人制草坪, 草皮维护中', supervision: false, maintReason: '草皮整体换新养护', maintDuration: '下月初' },
+                        { id: 'TYG-O3', showId: false, name: '室外篮球场 C', type: '运动场馆', icon: 'ph-basketball', status: 'available', capacity: 30, facilities: '塑胶场地, 露天看台', supervision: false },
+                        { id: 'TYG-O4', showId: false, name: '室外篮球场 D', type: '运动场馆', icon: 'ph-basketball', status: 'available', capacity: 30, facilities: '塑胶场地, 露天看台', supervision: false },
+                        { id: 'TYG-O5', showId: false, name: '室外篮球场 E', type: '运动场馆', icon: 'ph-basketball', status: 'available', capacity: 30, facilities: '塑胶场地, 露天看台', supervision: false },
+                        { id: 'TYG-O6', showId: false, name: '室外篮球场 F', type: '运动场馆', icon: 'ph-basketball', status: 'available', capacity: 30, facilities: '塑胶场地, 露天看台', supervision: false },
+                        { id: 'TYG-O7', showId: false, name: '室外羽毛球场 5', type: '运动场馆', icon: 'ph-tennis-ball', status: 'available', capacity: 8, facilities: '塑胶场地', supervision: false },
+                        { id: 'TYG-O8', showId: false, name: '室外羽毛球场 6', type: '运动场馆', icon: 'ph-tennis-ball', status: 'available', capacity: 8, facilities: '塑胶场地', supervision: false },
+                        { id: 'TYG-O9', showId: false, name: '室外跑道', type: '运动场馆', icon: 'ph-person-simple-run', status: 'free', capacity: 500, facilities: '标准400m塑胶跑道', supervision: false }
+                    ]
+                },
+                {
+                    level: -1, label: 'B1', desc: '地下训练馆',
+                    rooms: [
+                        { id: 'TYG-B1', showId: false, name: '健身房', type: '运动场馆', icon: 'ph-barbell', status: 'free', capacity: 50, facilities: '力量器械, 有氧区', supervision: false },
+                        { id: 'TYG-B2', showId: false, name: '室内跑道', type: '运动场馆', icon: 'ph-person-simple-run', status: 'free', capacity: 100, facilities: '室内恒温跑道', supervision: false }
+                    ]
+                }
+            ]}
+        ];
+
+        const generateTimeSlots = () => {
+            let slots = [];
+            for (let i = 8; i < 20; i++) slots.push(`${i.toString().padStart(2, '0')}:00`);
+            return slots;
+        };
+        const ALL_SLOTS = generateTimeSlots();
+
+        const ReservationApp = {
+            state: {
+                selectedBuildingIdx: 0, // 默认综合楼
+                selectedRoom: null,
+                selectedFloorName: '',
+                dates: [], // {raw, day, month, weekday, isPast, fullDateStr}
+                selectedDateIndex: 0,
+                selectedSlots: [],
+                allUsers: [], // 全校用户列表，用于协同者选择
+                selectedCoUsers: [] // 选中的协同者对象数组
+            },
+
+            async init() {
+                const { data } = await window.supabase.from('users').select('avatar').eq('student_id', currentUserId).single();
+                if(data) document.getElementById('header-avatar').src = data.avatar;
+
+                this.fetchAllUsers();
+                this.generateDates();
+                this.renderBuildingTabs();
+                this.switchBuilding(this.state.selectedBuildingIdx);
+            },
+
+            async fetchAllUsers() {
+                const { data } = await window.supabase.from('users').select('student_id, name, avatar, class_name');
+                if(data) {
+                    this.state.allUsers = data.filter(u => u.student_id !== currentUserId);
+                }
+            },
+
+            renderBuildingTabs() {
+                const container = document.getElementById('building-selector');
+                container.innerHTML = MOCK_BUILDINGS.map((b, idx) => `
+                    <button onclick="ReservationApp.switchBuilding(${idx})" class="px-6 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap shrink-0 border-2 ${idx === this.state.selectedBuildingIdx ? 'bg-dark border-dark text-white shadow-md' : 'bg-white border-transparent text-gray-400 hover:border-gray-200'}">
+                        ${b.name}
+                    </button>
+                `).join('');
+            },
+
+            switchBuilding(idx) {
+                this.state.selectedBuildingIdx = idx;
+                const building = MOCK_BUILDINGS[idx];
+                
+                document.getElementById('building-name').textContent = building.name;
+                document.getElementById('building-desc').textContent = building.desc;
+                
+                this.renderBuildingTabs();
+                this.closeDetail();
+                this.renderBuildingMap(building);
+            },
+
+            renderBuildingMap(building) {
+                const mapContainer = document.getElementById('building-map');
+                mapContainer.style.opacity = '0';
+                
+                setTimeout(() => {
+                    if (building.floors.length === 0) {
+                        mapContainer.innerHTML = '';
+                    } else {
+                        let html = '';
+                        building.floors.forEach(floor => {
+                            // 过滤掉不可预约（locked）的房间，不再显示
+                            const visibleRooms = floor.rooms.filter(r => r.status !== 'locked');
+                            if (visibleRooms.length === 0) return;
+
+                            html += `
+                            <div class="flex flex-col xl:flex-row gap-6 items-stretch">
+                                <!-- 楼层标签 -->
+                                <div class="w-full xl:w-28 shrink-0 bg-white border border-gray-100 rounded-[28px] shadow-sm flex xl:flex-col items-center justify-center p-4 gap-2 relative overflow-hidden">
+                                    <div class="absolute inset-0 bg-gradient-to-b from-transparent to-gray-50/50"></div>
+                                    <span class="text-3xl font-bold text-dark relative z-10">${floor.label}</span>
+                                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest xl:text-center relative z-10">${floor.desc}</span>
+                                </div>
+                                <!-- 教室卡片 -->
+                                <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            `;
+                            
+                            visibleRooms.forEach(room => {
+                                const isMaint = room.status === 'maintenance';
+                                const isFree = room.status === 'free';
+                                const isSelected = this.state.selectedRoom && this.state.selectedRoom.id === room.id;
+                                
+                                const borderClass = isSelected ? 'border-dark shadow-md ring-1 ring-dark' : 'border-gray-100 hover:border-gray-300 hover:shadow-hover-glow';
+
+                                // 免预约的专属大型提示 Badge
+                                let freeBadge = '';
+                                if(isFree) {
+                                    freeBadge = '<div class="absolute top-4 right-4 text-[13px] font-black text-accentBlue bg-accentBlue/10 px-3.5 py-1.5 rounded-lg border border-accentBlue/20 z-10 tracking-widest">无需预约</div>';
+                                }
+
+                                // 维护专属 Tooltip (悬浮展示原因)
+                                const maintTooltip = isMaint ? `
+                                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 bg-dark/95 backdrop-blur-sm text-white text-xs p-3 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 text-center shadow-2xl border border-white/10 pointer-events-none">
+                                        <div class="text-accentYellow font-bold mb-1">正在维护中</div>
+                                        <div class="text-gray-300 font-medium">原因: ${room.maintReason || '常规设施检修'}<br>预计恢复: ${room.maintDuration || '待定'}</div>
+                                        <div class="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-dark/95"></div>
+                                    </div>
+                                ` : '';
+
+                                // 图标颜色基调：根据类型设定专属颜色
+                                let iconColor = 'text-accentGreen'; let iconBg = 'bg-accentGreen/10'; // 默认实验室绿
+                                if(isFree) { iconColor = 'text-accentBlue'; iconBg = 'bg-accentBlue/10'; }
+                                else if(room.type === '会议室' || room.type === '大会议室') { iconColor = 'text-accentBlue'; iconBg = 'bg-accentBlue/10'; }
+                                else if(room.type === '艺术中心') { iconColor = 'text-accentPurple'; iconBg = 'bg-accentPurple/10'; }
+                                else if(room.type === '教室') { iconColor = 'text-accentYellow'; iconBg = 'bg-accentYellow/10'; }
+                                else if(room.type === '运动场馆') { iconColor = 'text-accentOrange'; iconBg = 'bg-accentOrange/10'; }
+                                
+                                // 如果是维护状态，整体置灰
+                                if(isMaint) { iconColor = 'text-gray-500'; iconBg = 'bg-gray-100'; }
+
+                                // 房间标题处理：体育馆房间不显示门牌号
+                                const displayId = room.showId === false ? '' : room.id;
+                                let displayName = room.name;
+                                if(room.showId !== false && room.name.startsWith(room.id)) {
+                                    displayName = room.name.replace(room.id + ' ', ''); 
+                                }
+
+                                const clickAction = (isMaint || isFree) ? '' : `ReservationApp.openDetail('${room.id}', '${floor.label}')`;
+                                const stateClasses = isMaint ? 'opacity-60 cursor-not-allowed grayscale relative group' : (isFree ? 'cursor-default relative' : 'cursor-pointer hover:-translate-y-1.5 relative group');
+
+                                const iconBlock = room.icon ? `<i class="ph-duotone ${room.icon}"></i>` : '';
+                                const iconDiv = `<div class="w-12 h-12 rounded-[14px] ${iconBg} ${iconColor} flex items-center justify-center text-2xl transition-transform group-hover:scale-110 ${room.icon ? '' : 'invisible'}">${iconBlock}</div>`;
+
+                                html += `
+                                    <div onclick="${clickAction}" 
+                                         class="bg-white rounded-[24px] p-6 border-2 transition-all duration-300 overflow-visible flex flex-col h-[160px]
+                                         ${stateClasses} ${borderClass}">
+                                        
+                                        ${maintTooltip}
+                                        ${freeBadge}
+                                        
+                                        <div class="flex justify-between items-start mb-auto relative z-10">
+                                            ${iconDiv}
+                                            ${displayId ? `<span class="text-xl font-bold text-dark tracking-wider mt-0.5">${displayId}</span>` : ''}
+                                        </div>
+                                        
+                                        <div class="w-full relative z-10 mt-4">
+                                            <h3 class="text-base font-bold text-dark truncate mb-1.5">${displayName}</h3>
+                                            <div class="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase">
+                                                <i class="ph-fill ph-tag text-sm"></i> ${room.type}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            html += `</div></div>`;
+                        });
+                        mapContainer.innerHTML = html;
+                    }
+                    mapContainer.style.opacity = '1';
+                }, 150);
+            },
+
+            generateDates() {
+                const today = new Date();
+                const currentDayOfWeek = today.getDay(); 
+                
+                // 从本周日开始生成 28 天 (4周) 的网格日历数据
+                const startDate = new Date(today);
+                startDate.setDate(today.getDate() - currentDayOfWeek); 
+
+                const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+                this.state.dates = [];
+                for(let i = 0; i < 28; i++) {
+                    const d = new Date(startDate);
+                    d.setDate(startDate.getDate() + i);
+                    
+                    // 判断是否过期 (小于今天的0点0分)
+                    const todayZero = new Date();
+                    todayZero.setHours(0,0,0,0);
+                    const isPast = d < todayZero;
+
+                    this.state.dates.push({
+                        raw: d, 
+                        dayNum: d.getDate(),
+                        monthNum: d.getMonth() + 1,
+                        dayStr: d.getDate().toString().padStart(2, '0'), 
+                        monthStr: (d.getMonth() + 1).toString().padStart(2, '0'),
+                        weekday: weekDays[d.getDay()],
+                        isPast: isPast,
+                        fullDateStr: `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`
+                    });
+                }
+
+                // 默认选中第一天 (今天)
+                this.state.selectedDateIndex = currentDayOfWeek;
+            },
+
+            // 核心：基于建筑ID、房间ID和日期的确定性随机规则
+            getDailyStatus(dateObj) {
+                const bId = MOCK_BUILDINGS[this.state.selectedBuildingIdx].id;
+                const dayOfWeek = dateObj.getDay();
+                let availableSlots = [];
+
+                if (bId === 'TYG') {
+                    // 体育馆：仅周三(3)、周六(6)、周日(0)
+                    if ([0, 3, 6].includes(dayOfWeek)) availableSlots = ALL_SLOTS;
+                } else {
+                    // 综合楼 & 行政楼：周一至周五(1-5), 11:00 ~ 18:00
+                    if ([1, 2, 3, 4, 5].includes(dayOfWeek)) {
+                        availableSlots = ALL_SLOTS.filter(s => {
+                            const h = parseInt(s.split(':')[0], 10);
+                            return h >= 11 && h < 18;
+                        });
+                    }
+                }
+
+                if (availableSlots.length === 0) {
+                    return { available: [], booked: [], status: 'disabled' };
+                }
+
+                if (!this.state.selectedRoom) return { available: [], booked: [], status: 'disabled' };
+
+                const rId = this.state.selectedRoom.id;
+                // 用房间名和日期作为种子，生成稳定的随机预约情况
+                const seedStr = `${rId}-${dateObj.getFullYear()}-${dateObj.getMonth()}-${dateObj.getDate()}`;
+                let hash = 0;
+                for (let i = 0; i < seedStr.length; i++) {
+                    hash = Math.imul(31, hash) + seedStr.charCodeAt(i) | 0;
+                }
+                
+                const random = (seed) => {
+                    const x = Math.sin(seed++) * 10000;
+                    return x - Math.floor(x);
+                };
+
+                const booked = [];
+                availableSlots.forEach((slot, idx) => {
+                    // 概率调节：大概率空闲，小概率拥挤
+                    if (random(hash + idx) < 0.35) {
+                        booked.push(slot);
+                    }
+                });
+
+                const ratio = booked.length / availableSlots.length;
+                let status = 'free';
+                if (ratio === 1) status = 'full';
+                else if (ratio >= 0.5) status = 'busy';
+
+                return { available: availableSlots, booked: booked, status: status };
+            },
+
+            findRoom(id) {
+                const building = MOCK_BUILDINGS[this.state.selectedBuildingIdx];
+                for(const floor of building.floors) {
+                    const room = floor.rooms.find(r => r.id === id);
+                    if(room) return room;
+                }
+                return null;
+            },
+
+            openDetail(roomId, floorLabel) {
+                this.state.selectedRoom = this.findRoom(roomId);
+                this.state.selectedFloorName = floorLabel;
+                this.state.selectedSlots = [];
+                
+                let displayName = this.state.selectedRoom.name;
+                if(this.state.selectedRoom.showId !== false && this.state.selectedRoom.name.startsWith(this.state.selectedRoom.id)) {
+                    displayName = this.state.selectedRoom.name.replace(this.state.selectedRoom.id + ' ', ''); 
+                }
+
+                document.getElementById('selected-venue-name').innerHTML = `${this.state.selectedRoom.showId !== false ? `<span class="mr-2 font-bold text-dark tracking-wider">${this.state.selectedRoom.id}</span>` : ''}${displayName}`;
+                document.getElementById('selected-venue-floor').textContent = floorLabel;
+                document.getElementById('selected-venue-info').innerHTML = `
+                    <span class="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-1 shrink-0"><i class="ph-bold ph-users text-sm"></i> 人数上限: ${this.state.selectedRoom.capacity}人</span>
+                    <span class="px-2.5 py-1 bg-green-50 text-green-600 rounded-lg text-[10px] font-bold border border-green-100 flex items-center gap-1 shrink-0"><i class="ph-bold ph-check-square text-sm"></i> 设施: ${this.state.selectedRoom.facilities}</span>
+                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold border flex items-center gap-1 shrink-0 ${this.state.selectedRoom.supervision ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-50 text-gray-500 border-gray-200'}">
+                        <i class="ph-bold ${this.state.selectedRoom.supervision ? 'ph-warning-circle' : 'ph-info'} text-sm"></i> ${this.state.selectedRoom.supervision ? '须教师指导' : '独立使用'}
+                    </span>
+                `;
+                
+                const vPanel = document.getElementById('venues-panel');
+                const dPanel = document.getElementById('datetime-panel');
+                vPanel.classList.remove('lg:w-full');
+                vPanel.classList.add('lg:w-7/12', 'hidden', 'lg:flex');
+                dPanel.classList.remove('lg:w-[0px]', 'opacity-0');
+                dPanel.classList.add('lg:w-5/12', 'opacity-100');
+
+                this.renderBuildingMap(MOCK_BUILDINGS[this.state.selectedBuildingIdx]);
+                
+                // 默认选择第一个可用的未过期日期
+                const validIndex = this.state.dates.findIndex((d, idx) => !d.isPast && this.getDailyStatus(d.raw).status !== 'disabled');
+                this.state.selectedDateIndex = validIndex !== -1 ? validIndex : this.state.dates.findIndex(d => !d.isPast);
+
+                this.updateCalendarBtnUI();
+                this.mockAndRenderTimeSlots();
+                this.updateConfirmButton();
+            },
+
+            closeDetail() {
+                this.state.selectedRoom = null;
+                const vPanel = document.getElementById('venues-panel');
+                const dPanel = document.getElementById('datetime-panel');
+                vPanel.classList.remove('lg:w-7/12', 'hidden', 'lg:flex');
+                vPanel.classList.add('lg:w-full');
+                dPanel.classList.remove('lg:w-5/12', 'opacity-100');
+                dPanel.classList.add('lg:w-[0px]', 'opacity-0');
+
+                this.renderBuildingMap(MOCK_BUILDINGS[this.state.selectedBuildingIdx]);
+            },
+
+            toggleCalendar(e) {
+                if(e) e.stopPropagation();
+                const dropdown = document.getElementById('calendar-dropdown');
+                if (dropdown.classList.contains('invisible')) {
+                    this.renderCalendarGrid(); // 展开前渲染最新数据
+                    dropdown.classList.remove('invisible', 'opacity-0', 'translate-y-[-10px]');
+                } else {
+                    dropdown.classList.add('invisible', 'opacity-0', 'translate-y-[-10px]');
+                }
+            },
+            
+            closeCalendar(e) {
+                const dropdown = document.getElementById('calendar-dropdown');
+                const container = document.getElementById('calendar-container');
+                if (dropdown && container && !container.contains(e.target)) {
+                    dropdown.classList.add('invisible', 'opacity-0', 'translate-y-[-10px]');
+                }
+            },
+
+            renderCalendarGrid() {
+                const grid = document.getElementById('calendar-grid');
+                let html = '';
+                this.state.dates.forEach((d, idx) => {
+                    if (d.isPast) {
+                        html += `<div class="py-2 text-center text-gray-300 text-sm font-bold bg-white rounded-xl cursor-not-allowed"> ${d.dayNum} </div>`;
+                        return;
+                    }
+
+                    const info = this.getDailyStatus(d.raw);
+                    let colorClass = '';
+                    let cursor = 'cursor-pointer hover:-translate-y-0.5';
+                    let onClick = `onclick="ReservationApp.selectDate(${idx})"`;
+
+                    if (info.status === 'disabled') {
+                        colorClass = 'bg-gray-50 text-gray-300 border border-gray-100/50';
+                        cursor = 'cursor-not-allowed';
+                        onClick = '';
+                    } else if (info.status === 'full') {
+                        colorClass = 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 shadow-sm';
+                    } else if (info.status === 'busy') {
+                        colorClass = 'bg-yellow-50 text-yellow-600 border border-yellow-100 hover:bg-yellow-100 shadow-sm';
+                    } else {
+                        colorClass = 'bg-green-50 text-green-600 border border-green-100 hover:bg-green-100 shadow-sm';
+                    }
+
+                    // 选中状态高亮覆盖
+                    if (idx === this.state.selectedDateIndex) {
+                        colorClass = 'bg-dark text-accentYellow border-dark shadow-md ring-2 ring-accentYellow/50 z-10';
+                    }
+
+                    html += `<div ${onClick} class="py-2 text-center text-sm font-bold rounded-xl transition-all ${colorClass} ${cursor} relative"> ${d.dayNum} </div>`;
+                });
+                grid.innerHTML = html;
+            },
+
+            updateCalendarBtnUI() {
+                const d = this.state.dates[this.state.selectedDateIndex];
+                document.getElementById('date-btn-text').textContent = `${d.fullDateStr} 星期${d.weekday}`;
+                
+                const info = this.getDailyStatus(d.raw);
+                const badge = document.getElementById('date-btn-badge');
+                
+                if (info.status === 'disabled') {
+                    badge.className = "px-2.5 py-1 rounded-md text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200";
+                    badge.textContent = "未开放";
+                } else if (info.status === 'full') {
+                    badge.className = "px-2.5 py-1 rounded-md text-[10px] font-bold bg-red-50 text-red-600 border border-red-200";
+                    badge.textContent = "已约满";
+                } else if (info.status === 'busy') {
+                    badge.className = "px-2.5 py-1 rounded-md text-[10px] font-bold bg-yellow-50 text-yellow-600 border border-yellow-200";
+                    badge.textContent = "较多";
+                } else {
+                    badge.className = "px-2.5 py-1 rounded-md text-[10px] font-bold bg-green-50 text-green-600 border border-green-200";
+                    badge.textContent = "空闲";
+                }
+            },
+
+            selectDate(idx) {
+                this.state.selectedDateIndex = idx;
+                this.state.selectedSlots = [];
+                
+                document.getElementById('calendar-dropdown').classList.add('invisible', 'opacity-0', 'translate-y-[-10px]');
+                this.updateCalendarBtnUI();
+                this.mockAndRenderTimeSlots();
+                this.updateConfirmButton();
+            },
+
+            mockAndRenderTimeSlots() {
+                const d = this.state.dates[this.state.selectedDateIndex];
+                const info = this.getDailyStatus(d.raw);
+                const grid = document.getElementById('time-grid');
+
+                if (info.status === 'disabled') {
+                    grid.innerHTML = '<div class="col-span-full py-10 text-center text-gray-400 font-bold text-sm bg-gray-50 rounded-2xl border border-gray-100">该场馆在当前日期未开放预约</div>';
+                    return;
+                }
+                
+                let html = '';
+                info.available.forEach((slot, index) => {
+                    const isBooked = info.booked.includes(slot);
+                    const isSelected = this.state.selectedSlots.includes(slot);
+                    
+                    let btnClass = "slot-btn w-full py-3.5 rounded-xl text-sm font-bold border-2 transition-all ";
+                    if (isBooked) btnClass += "bg-gray-100 border-gray-100 text-gray-400 cursor-not-allowed opacity-60";
+                    else if (isSelected) btnClass += "bg-dark border-dark text-accentYellow shadow-hover-glow transform -translate-y-1";
+                    else btnClass += "bg-white border-gray-100 text-dark hover:border-gray-300 hover:shadow-sm";
+
+                    html += `<button onclick="ReservationApp.toggleSlot('${slot}', ${isBooked})" class="${btnClass}" ${isBooked ? 'disabled' : ''} style="animation: popIn 0.3s ease forwards ${index * 0.02}s; opacity: 0;">${slot}</button>`;
+                });
+                grid.innerHTML = html;
+            },
+
+            toggleSlot(slot, isBooked) {
+                if (isBooked) return;
+                const idx = this.state.selectedSlots.indexOf(slot);
+                if (idx > -1) this.state.selectedSlots.splice(idx, 1);
+                else {
+                    if(this.state.selectedSlots.length >= 3) return alert("单次预约最多选择 3 个时段");
+                    this.state.selectedSlots.push(slot);
+                }
+                this.mockAndRenderTimeSlots();
+                this.updateConfirmButton();
+            },
+
+            updateConfirmButton() {
+                const count = this.state.selectedSlots.length;
+                document.getElementById('selected-count-label').textContent = `${count} 个`;
+                const btn = document.getElementById('btn-confirm');
+                
+                if(count > 0) {
+                    btn.disabled = false;
+                    btn.className = "w-full py-4 rounded-2xl font-bold text-sm shadow-lg transition-all flex justify-center items-center gap-2 bg-dark text-white hover:bg-opacity-90 hover:scale-[1.02] active:scale-95 cursor-pointer";
+                    btn.innerHTML = `<i class="ph-bold ph-pencil-simple"></i> 填写预约申请 (${count}个时段)`;
+                } else {
+                    btn.disabled = true;
+                    btn.className = "w-full py-4 rounded-2xl font-bold text-sm transition-all flex justify-center items-center gap-2 bg-gray-100 text-gray-400 cursor-not-allowed";
+                    btn.innerHTML = "请选择时段";
+                }
+            },
+
+            openBookingForm() {
+                let displayName = this.state.selectedRoom.name;
+                if(this.state.selectedRoom.showId !== false && this.state.selectedRoom.name.startsWith(this.state.selectedRoom.id)) {
+                    displayName = this.state.selectedRoom.name.replace(this.state.selectedRoom.id + ' ', ''); 
+                }
+                const vName = `${this.state.selectedRoom.showId !== false ? `<span class="text-dark font-black">${this.state.selectedRoom.id}</span> ` : ''}${displayName}`;
+                const dStr = this.state.dates[this.state.selectedDateIndex].fullDateStr;
+                this.state.selectedSlots.sort();
+                const timeStr = this.state.selectedSlots.join(', ');
+
+                document.getElementById('form-venue-preview').innerHTML = vName;
+                document.getElementById('form-venue-details').innerHTML = `
+                    <span class="px-2 py-1 bg-blue-50 text-blue-600 rounded-md text-[10px] font-bold border border-blue-100 flex items-center gap-1 shrink-0"><i class="ph-bold ph-users text-sm"></i> 人数上限: ${this.state.selectedRoom.capacity}人</span>
+                    <span class="px-2 py-1 bg-green-50 text-green-600 rounded-md text-[10px] font-bold border border-green-100 flex items-center gap-1 shrink-0"><i class="ph-bold ph-check-square text-sm"></i> 设施: ${this.state.selectedRoom.facilities}</span>
+                    <span class="px-2 py-1 rounded-md text-[10px] font-bold border flex items-center gap-1 shrink-0 ${this.state.selectedRoom.supervision ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-50 text-gray-500 border-gray-200'}">
+                        <i class="ph-bold ${this.state.selectedRoom.supervision ? 'ph-warning-circle' : 'ph-info'} text-sm"></i> ${this.state.selectedRoom.supervision ? '须教师指导' : '独立使用'}
+                    </span>
+                `;
+                document.getElementById('form-time-preview').textContent = `${dStr} | ${timeStr}`;
+
+                // 清空表单
+                document.getElementById('b-purpose').value = '';
+                document.getElementById('b-pax').value = '';
+                this.state.selectedCoUsers = [];
+                this.renderSelectedCoUsers();
+
+                document.getElementById('booking-form-modal').classList.remove('hidden');
+            },
+
+            closeBookingForm() {
+                document.getElementById('booking-form-modal').classList.add('hidden');
+            },
+
+            openUserSelector() {
+                document.getElementById('user-search-input').value = '';
+                this.searchUser(); // 渲染全量列表
+                document.getElementById('user-selector-modal').classList.remove('hidden');
+            },
+            closeUserSelector() {
+                document.getElementById('user-selector-modal').classList.add('hidden');
+                this.renderSelectedCoUsers();
+            },
+            searchUser() {
+                const q = document.getElementById('user-search-input').value.trim().toLowerCase();
+                const filtered = this.state.allUsers.filter(u => 
+                    u.name.toLowerCase().includes(q) || 
+                    u.student_id.includes(q) || 
+                    (u.class_name && u.class_name.includes(q))
+                );
+                
+                const list = document.getElementById('user-selector-list');
+                if(!filtered.length) {
+                    list.innerHTML = '<div class="text-center text-gray-400 py-6 text-xs font-bold">无匹配用户</div>';
+                    return;
+                }
+
+                list.innerHTML = filtered.map(u => {
+                    const isSelected = this.state.selectedCoUsers.some(su => su.student_id === u.student_id);
+                    return `
+                    <div class="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 transition-colors border ${isSelected ? 'border-accentYellow bg-yellow-50/30' : 'border-transparent'}">
+                        <div class="flex items-center gap-3">
+                            <img src="${u.avatar}" class="w-8 h-8 rounded-full bg-white border border-gray-200 shrink-0">
+                            <div>
+                                <p class="text-sm font-bold text-dark leading-none">${u.name}</p>
+                                <p class="text-[10px] text-gray-400 mt-1">${u.student_id} | ${u.class_name||'未知'}</p>
+                            </div>
+                        </div>
+                        <button onclick="ReservationApp.toggleCoUser('${u.student_id}')" class="w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-accentRed text-white hover:bg-red-600' : 'bg-gray-100 text-gray-500 hover:bg-accentBlue hover:text-white'}">
+                            <i class="ph-bold ${isSelected ? 'ph-minus' : 'ph-plus'}"></i>
+                        </button>
+                    </div>`;
+                }).join('');
+            },
+            toggleCoUser(userId) {
+                const idx = this.state.selectedCoUsers.findIndex(u => u.student_id === userId);
+                if (idx > -1) {
+                    this.state.selectedCoUsers.splice(idx, 1);
+                } else {
+                    const user = this.state.allUsers.find(u => u.student_id === userId);
+                    if(user) this.state.selectedCoUsers.push(user);
+                }
+                this.searchUser(); // 重新渲染列表以更新加减号状态
+            },
+            renderSelectedCoUsers() {
+                const container = document.getElementById('selected-cousers-container');
+                let html = '';
+                this.state.selectedCoUsers.forEach(u => {
+                    html += `
+                    <div class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-1.5 py-1 pr-2.5 shadow-sm shrink-0">
+                        <img src="${u.avatar}" class="w-6 h-6 rounded-full border border-gray-100 bg-gray-50">
+                        <span class="text-[11px] font-bold text-dark whitespace-nowrap">${u.name}</span>
+                    </div>`;
+                });
+                html += `
+                <button onclick="ReservationApp.openUserSelector()" class="w-7 h-7 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:text-accentBlue hover:border-accentBlue hover:bg-white transition-colors shrink-0" title="添加协同者">
+                    <i class="ph-bold ph-plus"></i>
+                </button>`;
+                container.innerHTML = html;
+            },
+
+            async executeBooking() {
+                const purpose = document.getElementById('b-purpose').value.trim();
+                const pax = document.getElementById('b-pax').value.trim();
+                if(!purpose || !pax) return alert("请填写具体用处和使用人数");
+
+                const btn = document.getElementById('btn-execute');
+                btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-lg"></i> 数据提交中...';
+                btn.classList.add('pointer-events-none');
+
+                try {
+                    const bookingData = {
+                        student_id: currentUserId,
+                        venue_id: this.state.selectedRoom.id,
+                        venue_name: this.state.selectedRoom.name,
+                        date: this.state.dates[this.state.selectedDateIndex].fullDateStr,
+                        time_slots: this.state.selectedSlots,
+                        co_users: this.state.selectedCoUsers.map(u => u.student_id) // 只存 ID
+                    };
+
+                    const { error } = await window.supabase.from('reservations').insert([bookingData]);
+                    if (error) throw error;
+
+                    const vName = this.state.selectedRoom.name;
+                    const dStr = this.state.dates[this.state.selectedDateIndex].fullDateStr;
+                    const timeStr = this.state.selectedSlots.join(', ');
+
+                    document.getElementById('success-desc').innerHTML = `您已成功预定 <span class="text-dark font-bold">${vName}</span><br><span class="text-accentBlue font-bold mt-1 inline-block">${dStr} | ${timeStr}</span>`;
+                    
+                    this.closeBookingForm();
+                    
+                    const modal = document.getElementById('success-modal');
+                    const box = document.getElementById('success-box');
+                    modal.classList.remove('hidden');
+                    setTimeout(() => {
+                        box.classList.remove('scale-90', 'opacity-0');
+                        box.classList.add('scale-100', 'opacity-100');
+                    }, 10);
+
+                } catch (e) {
+                    alert("预约失败: " + e.message);
+                } finally {
+                    btn.innerHTML = `<i class="ph-bold ph-check-circle"></i> 正式提交预约`;
+                    btn.classList.remove('pointer-events-none');
+                }
+            },
+
+            closeSuccess() {
+                const modal = document.getElementById('success-modal');
+                const box = document.getElementById('success-box');
+                box.classList.remove('scale-100', 'opacity-100');
+                box.classList.add('scale-90', 'opacity-0');
+                setTimeout(() => { modal.classList.add('hidden'); this.closeDetail(); }, 300);
+            }
+        };
+
+        window.onload = () => ReservationApp.init();
+    </script>
+</body>
+</html>
