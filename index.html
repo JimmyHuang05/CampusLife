@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
     
-    <!-- 引入 Supabase JS SDK 及初始化 -->
+    <!-- 引入 Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const _supabaseUrl = 'https://rrkyvgexkadfkucokmyv.supabase.co';
@@ -21,8 +21,23 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['DM Sans', 'sans-serif'], serif: ['"Noto Serif SC"', 'serif'] },
-                    colors: { bg: '#F3F0EA', card: '#EBE7E0', cardLight: '#FDFBF7', dark: '#1A1B1F', accentYellow: '#FFD646', accentOrange: '#FF9B85', accentRed: '#FF6B6B', accentBlue: '#A0C4FF', accentPurple: '#BDB2FF', accentGreen: '#16A34A', textGray: '#9CA3AF', textDark: '#1F2937' },
-                    boxShadow: { 'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)', 'popover': '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }
+                    colors: { bg: '#F3F0EA', cardLight: '#FDFBF7', dark: '#1A1B1F', accentYellow: '#FFD646', accentOrange: '#FF9B85', accentRed: '#FF6B6B', accentBlue: '#A0C4FF', accentPurple: '#BDB2FF', accentGreen: '#16A34A', textGray: '#9CA3AF', textDark: '#1F2937' },
+                    boxShadow: { 
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.04)', 
+                        'hover-glow': '0 12px 30px -4px rgba(0, 0, 0, 0.08)',
+                        'popover': '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                        'card-qr': '0 20px 50px -10px rgba(0, 0, 0, 0.2)'
+                    },
+                    animation: {
+                        'fade-up': 'fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite'
+                    },
+                    keyframes: {
+                        fadeUp: {
+                            '0%': { opacity: 0, transform: 'translateY(24px)' },
+                            '100%': { opacity: 1, transform: 'translateY(0)' }
+                        }
+                    }
                 }
             }
         }
@@ -30,157 +45,273 @@
     <style>
         ::-webkit-scrollbar { display: none !important; }
         html { scrollbar-width: none !important; -ms-overflow-style: none !important; }
-        .transition-all-custom { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .fade-slide { transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); }
     </style>
 </head>
 <body class="bg-bg min-h-screen text-textDark selection:bg-accentYellow selection:text-dark no-scrollbar font-sans text-left">
 
     <!-- 主应用界面 -->
-    <div id="main-app" class="max-w-[75%] mx-auto relative flex flex-col pt-4 pb-12 transition-all duration-500">
+    <div id="main-app" class="max-w-[75%] mx-auto relative flex flex-col pt-4 pb-12 transition-all duration-500 opacity-0" style="transition: opacity 0.6s ease-out;">
         <main class="page-container flex-1 p-6 lg:p-12 block pt-0">
-            <header class="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-8 lg:mb-12">
-                <div>
-                    <h1 id="user-greeting" class="text-3xl lg:text-4xl font-bold text-dark tracking-tight transition-all duration-300">正在连线云端...</h1>
-                    <p class="text-gray-400 text-sm mt-2">欢迎回来! 随时随地查看您的专属校园数据</p>
+            
+            <!-- Header (动画层级 1) -->
+            <header class="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-10 lg:mb-12 opacity-0 animate-fade-up">
+                <div class="flex-1">
+                    <div class="flex items-center gap-3">
+                        <h1 id="user-greeting" class="text-3xl lg:text-4xl font-bold text-dark tracking-tight">正在连线云端...</h1>
+                        <span id="role-tag" class="px-2.5 py-0.5 rounded-md bg-dark text-white text-[10px] font-bold uppercase tracking-widest hidden">Student</span>
+                    </div>
+                    <p class="text-gray-400 text-sm mt-2 font-medium">欢迎回来! 随时随地查看您的专属校园数据</p>
                 </div>
-                <div class="flex items-center gap-4 mt-6 lg:mt-0">
-                    <div class="search-container bg-white rounded-full px-5 h-12 flex items-center gap-3 shadow-sm min-w-[300px] border border-gray-100"><i class="ph ph-magnifying-glass text-gray-400 text-xl"></i><input type="text" placeholder="搜索公告..." class="bg-transparent border-none outline-none text-sm w-full"></div>
-                    <button onclick="attemptAction('投稿申请')" class="bg-dark text-white px-8 py-3 rounded-full text-sm font-medium hover:bg-opacity-90 transition shadow-lg">我要投稿</button>
-                    <div onclick="toggleSettingsModal(true)" class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm cursor-pointer hover:ring-4 hover:ring-accentYellow/30 transition-all relative">
-                        <img id="header-avatar" src="" class="w-full h-full object-cover">
+                
+                <div class="flex items-center gap-3 mt-6 lg:mt-0">
+                    <div class="search-container bg-white rounded-full px-5 h-12 flex items-center gap-3 shadow-sm min-w-[280px] border border-gray-100 focus-within:ring-4 focus-within:ring-accentYellow/20 focus-within:border-accentYellow transition-all duration-300">
+                        <i class="ph ph-magnifying-glass text-gray-400 text-xl"></i>
+                        <input type="text" placeholder="搜索服务..." class="bg-transparent border-none outline-none text-sm w-full placeholder-gray-400 font-medium text-dark">
+                    </div>
+
+                    <button onclick="toggleCardModal(true)" class="w-12 h-12 rounded-full glass shadow-sm flex items-center justify-center text-dark hover:scale-105 active:scale-95 transition-all relative border border-gray-200" title="虚拟校园卡">
+                        <i class="ph ph-identification-card text-2xl"></i>
+                    </button>
+
+                    <button onclick="toggleNoticeModal(true)" class="w-12 h-12 rounded-full glass shadow-sm flex items-center justify-center text-dark hover:scale-105 active:scale-95 transition-all relative border border-gray-200" title="通知中心">
+                        <i class="ph ph-bell text-2xl"></i>
+                        <div class="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-accentRed rounded-full border-2 border-white animate-pulse"></div>
+                    </button>
+                    
+                    <!-- 头像：点击打开管理账号弹窗 -->
+                    <div onclick="toggleUserModal(true)" class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm cursor-pointer hover:ring-4 hover:ring-accentYellow/30 transition-all active:scale-95 relative" title="管理账号">
+                        <img id="header-avatar" src="" class="w-full h-full object-cover bg-white">
                     </div>
                 </div>
             </header>
 
-            <!-- 新闻与荣誉区 -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
-                <div id="headline-container" class="group col-span-12 lg:col-span-7 bg-[#E5E1D8] rounded-[32px] p-8 lg:p-10 relative overflow-hidden shadow-soft flex flex-col h-[450px]">
-                    <div id="news-circle-1" class="absolute top-[-10%] right-[-5%] w-80 h-80 rounded-full filter blur-[80px] opacity-50 bg-accentRed"></div>
-                    <div id="news-circle-2" class="absolute bottom-[10%] left-[25%] w-64 h-64 rounded-full filter blur-[80px] opacity-40 bg-accentYellow"></div>
-                    <div id="headline-content" class="relative z-10 h-full flex flex-col justify-between transition-all-custom">
-                        <div><span id="news-tag" class="text-xs font-bold text-accentRed uppercase tracking-widest bg-dark text-white px-3 py-1 rounded-full mb-4 inline-block">⭐ 加载中...</span><h2 id="news-title" class="text-4xl font-bold text-dark leading-tight mt-2 min-h-[110px]">正在同步教务端推送资讯...</h2></div>
-                        <div class="mt-auto"><p id="news-desc" class="text-base text-gray-700 mb-6 line-clamp-2 max-w-lg min-h-[48px]">请稍候...</p><div class="flex items-center gap-4"><div id="news-date" class="text-sm text-gray-600 font-medium">---- -- --</div><button id="news-read-btn" class="bg-dark text-white px-6 py-2 rounded-full text-sm font-medium hover:scale-105 transition shadow-md">阅读全文 <i class="ph-bold ph-arrow-right ml-1"></i></button></div></div>
+            <!-- 新闻与荣誉区 (动画层级 2) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12 opacity-0 animate-fade-up delay-100">
+                <div id="headline-container" class="group col-span-12 lg:col-span-7 bg-[#E5E1D8] rounded-[40px] p-8 lg:p-12 relative overflow-hidden shadow-soft flex flex-col h-[480px] border border-white/40">
+                    <div id="news-circle-1" class="absolute top-[-10%] right-[-5%] w-80 h-80 rounded-full filter blur-[80px] opacity-50 bg-accentRed transition-all duration-1000 group-hover:scale-110"></div>
+                    <div id="news-circle-2" class="absolute bottom-[10%] left-[25%] w-64 h-64 rounded-full filter blur-[80px] opacity-40 bg-accentYellow transition-all duration-1000 group-hover:scale-110"></div>
+                    <div id="headline-content" class="relative z-10 h-full flex flex-col justify-between fade-slide">
+                        <div>
+                            <span id="news-tag" class="text-[11px] font-bold text-accentRed uppercase tracking-widest bg-dark text-white px-4 py-1.5 rounded-full mb-6 inline-block shadow-sm">⭐ 加载中...</span>
+                            <h2 id="news-title" class="text-4xl lg:text-[42px] font-bold text-dark leading-tight mt-2 min-h-[110px] tracking-tight">正在同步教务推送资讯...</h2>
+                        </div>
+                        <div class="mt-auto">
+                            <p id="news-desc" class="text-base text-gray-700/80 font-medium mb-10 line-clamp-2 max-w-lg min-h-[48px] leading-relaxed">请稍候，我们正在为您呈现校园最新动态。</p>
+                            <div class="flex items-center gap-5">
+                                <div id="news-date" class="text-sm text-gray-500 font-bold uppercase tracking-wider bg-white/50 px-5 py-2.5 rounded-full backdrop-blur-sm border border-white/60">---- -- --</div>
+                                <button id="news-read-btn" class="bg-dark text-white px-8 py-3 rounded-full text-sm font-bold hover:bg-gray-800 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all flex items-center gap-2">
+                                    阅读全文 <i class="ph-bold ph-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div id="news-indicators" class="absolute bottom-10 right-10 z-20 flex gap-2"></div>
+                    <div id="news-indicators" class="absolute bottom-12 right-12 z-20 flex gap-3"></div>
                 </div>
-                <div class="col-span-12 lg:col-span-5 bg-cardLight rounded-[32px] p-8 shadow-soft h-[450px] relative overflow-hidden group border border-gray-100 flex flex-col">
-                    <div class="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-accentYellow/20 to-transparent rounded-bl-[120px] z-0"></div>
+
+                <div class="col-span-12 lg:col-span-5 bg-cardLight rounded-[40px] p-8 lg:p-10 shadow-soft h-[480px] relative overflow-hidden group border border-gray-100 flex flex-col">
+                    <div class="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-accentYellow/20 to-transparent rounded-bl-[120px] z-0 transition-transform duration-700 group-hover:scale-110"></div>
                     <div class="flex justify-between items-start mb-6 relative z-10">
                         <div>
-                            <span class="text-[10px] font-bold text-accentOrange uppercase tracking-wider bg-accentOrange/10 px-2 py-0.5 rounded-full inline-block mb-1">⭐ 校园之星</span>
-                            <h2 class="font-bold text-dark text-2xl">本月模范榜样</h2>
+                            <span class="text-[10px] font-bold text-accentOrange uppercase tracking-widest bg-accentOrange/10 px-3 py-1 rounded-full inline-block mb-2">⭐ 校园之星</span>
+                            <h2 class="font-bold text-dark text-2xl tracking-tight">本月模范榜样</h2>
                         </div>
-                        <!-- 点击切换模范榜样 -->
-                        <button onclick="window.DashboardApp.nextStar()" class="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center text-dark hover:bg-white hover:scale-105 transition-all shadow-sm cursor-pointer" title="切换模范榜样">
+                        <button onclick="window.DashboardApp.nextStar()" class="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:text-dark hover:bg-gray-50 hover:shadow-sm active:scale-95 transition-all cursor-pointer" title="切换模范榜样">
                             <i class="ph-bold ph-arrows-left-right text-lg"></i>
                         </button>
                     </div>
-                    <div class="flex-1 flex flex-col items-center justify-center text-center relative z-10">
-                        <div class="relative mb-5"><div class="w-28 h-28 rounded-full p-1 bg-gradient-to-br from-accentYellow to-accentRed shadow-lg"><img id="star-avatar" src="" class="w-full h-full rounded-full object-cover border-[3px] border-white"></div><div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-dark text-white text-[10px] px-3 py-1 rounded-full font-bold shadow-md whitespace-nowrap">模范先锋</div></div>
-                        <h3 id="star-name" class="text-2xl font-bold text-dark mb-1">---</h3>
-                        <p id="star-title" class="text-sm text-gray-500 mb-6 transition-all-custom">加载中...</p>
-                        <div class="bg-white/60 rounded-2xl p-5 shadow-sm w-full border border-white/50 relative">
-                            <i class="ph-fill ph-quotes text-2xl text-accentBlue/20 absolute top-2 left-2"></i>
-                            <p id="star-quote" class="text-xs text-gray-600 italic px-4 leading-relaxed transition-all-custom">“等待数据拉取...”</p>
+                    
+                    <div id="star-content-container" class="flex-1 flex flex-col items-center justify-center text-center relative z-10 fade-slide">
+                        <div class="relative mb-8 group-hover:-translate-y-1 transition-transform duration-500">
+                            <div class="w-[110px] h-[110px] rounded-full p-1 bg-gradient-to-br from-accentYellow via-accentOrange to-accentRed shadow-lg">
+                                <img id="star-avatar" src="" class="w-full h-full rounded-full object-cover border-[3px] border-white bg-white">
+                            </div>
+                            <div class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-dark text-white text-[10px] px-3 py-1 rounded-full font-bold shadow-md whitespace-nowrap flex items-center gap-1 border border-white/20">
+                                <i class="ph-fill ph-sparkle text-accentYellow"></i> 模范先锋
+                            </div>
+                        </div>
+                        <h3 id="star-name" class="text-2xl font-bold text-dark mb-1.5 tracking-tight">---</h3>
+                        <p id="star-title" class="text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-8">加载中...</p>
+                        <div class="bg-white/80 rounded-[24px] p-6 shadow-sm w-full border border-gray-100 relative">
+                            <i class="ph-fill ph-quotes text-2xl text-accentBlue/20 absolute -top-4 left-6 bg-white px-1"></i>
+                            <p id="star-quote" class="text-sm text-gray-600 font-medium italic px-2 leading-relaxed">“等待数据拉取...”</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 完全修复的 6 大导航磁贴 -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 6 大导航磁贴 (动画层级 3) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 opacity-0 animate-fade-up delay-200">
                 <div class="space-y-6">
-                    <div onclick="attemptAction('学术成绩查询', 'archive_search.html?type=academic')" class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:scale-[1.02] transition-all group flex gap-5 items-start">
-                        <div class="w-14 h-14 rounded-2xl bg-accentBlue/20 text-accentBlue flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform"><i class="ph-fill ph-student text-2xl"></i></div>
-                        <div><h4 class="text-lg font-bold">学术成绩档案</h4><p class="text-xs text-gray-500 mt-1 leading-relaxed">查询教师端下发的个人各阶段成绩记录与分析。</p></div>
+                    <div onclick="attemptAction('学术成绩查询', 'archive_search.html?type=academic')" class="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100/60 cursor-pointer hover:-translate-y-1.5 hover:shadow-hover-glow transition-all duration-300 group flex gap-6 items-start">
+                        <div class="w-14 h-14 rounded-[20px] bg-accentBlue/10 text-accentBlue flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300"><i class="ph-fill ph-student text-2xl"></i></div>
+                        <div><h4 class="text-lg font-bold text-dark tracking-tight">学术成绩档案</h4><p class="text-[13px] text-gray-500 font-medium mt-1.5 leading-relaxed">查询教师端下发的个人各阶段成绩记录与深度分析。</p></div>
                     </div>
-                    <div onclick="attemptAction('体质健康查询', 'archive_search.html?type=health')" class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:scale-[1.02] transition-all group flex gap-5 items-start">
-                        <div class="w-14 h-14 rounded-2xl bg-accentBlue/20 text-accentBlue flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform"><i class="ph-fill ph-first-aid text-2xl"></i></div>
-                        <div><h4 class="text-lg font-bold">体质健康档案</h4><p class="text-xs text-gray-500 mt-1 leading-relaxed">查看个人体格检查指标、监测数据及健康指导。</p></div>
+                    <div onclick="attemptAction('体质健康查询', 'archive_search.html?type=health')" class="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100/60 cursor-pointer hover:-translate-y-1.5 hover:shadow-hover-glow transition-all duration-300 group flex gap-6 items-start">
+                        <div class="w-14 h-14 rounded-[20px] bg-accentGreen/10 text-accentGreen flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300"><i class="ph-fill ph-first-aid text-2xl"></i></div>
+                        <div><h4 class="text-lg font-bold text-dark tracking-tight">体质健康档案</h4><p class="text-[13px] text-gray-500 font-medium mt-1.5 leading-relaxed">查看个人体格检查指标、监测数据及定制健康指导。</p></div>
                     </div>
-                    <div onclick="attemptAction('荣誉奖项查询', 'archive_search.html?type=award')" class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:scale-[1.02] transition-all group flex gap-5 items-start">
-                        <div class="w-14 h-14 rounded-2xl bg-accentBlue/20 text-accentBlue flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform"><i class="ph-fill ph-medal text-2xl"></i></div>
-                        <div><h4 class="text-lg font-bold">荣誉记录档案</h4><p class="text-xs text-gray-500 mt-1 leading-relaxed">检索个人各项评优获奖称号与违纪处分记录。</p></div>
+                    <div onclick="attemptAction('荣誉奖项查询', 'archive_search.html?type=award')" class="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100/60 cursor-pointer hover:-translate-y-1.5 hover:shadow-hover-glow transition-all duration-300 group flex gap-6 items-start">
+                        <div class="w-14 h-14 rounded-[20px] bg-accentOrange/10 text-accentOrange flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300"><i class="ph-fill ph-medal text-2xl"></i></div>
+                        <div><h4 class="text-lg font-bold text-dark tracking-tight">荣誉记录档案</h4><p class="text-[13px] text-gray-500 font-medium mt-1.5 leading-relaxed">检索个人在校期间的各项评优获奖称号与违纪记录。</p></div>
                     </div>
                 </div>
                 <div class="space-y-6">
-                    <div onclick="attemptAction('智慧图书馆', 'library.html')" class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 cursor-pointer hover:scale-[1.02] transition-all group flex gap-5 items-start">
-                        <div class="w-14 h-14 rounded-2xl bg-accentRed/20 text-accentRed flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform"><i class="ph-fill ph-books text-2xl"></i></div>
-                        <div><h4 class="text-lg font-bold">智慧图书馆服务</h4><p class="text-xs text-gray-500 mt-1 leading-relaxed">检索全球馆藏资源，在线办理图书借阅与归还。</p></div>
+                    <div onclick="attemptAction('智慧图书馆', 'library.html')" class="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100/60 cursor-pointer hover:-translate-y-1.5 hover:shadow-hover-glow transition-all duration-300 group flex gap-6 items-start">
+                        <div class="w-14 h-14 rounded-[20px] bg-accentRed/10 text-accentRed flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300"><i class="ph-fill ph-books text-2xl"></i></div>
+                        <div><h4 class="text-lg font-bold text-dark tracking-tight">智慧图书馆服务</h4><p class="text-[13px] text-gray-500 font-medium mt-1.5 leading-relaxed">检索全球馆藏图书资源，在线办理快捷借阅与归还。</p></div>
                     </div>
-                    <div class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 opacity-60 flex gap-5 items-start cursor-not-allowed">
-                        <div class="w-14 h-14 rounded-2xl bg-accentRed/20 text-accentRed flex items-center justify-center shrink-0"><i class="ph-fill ph-users-three text-2xl"></i></div>
-                        <div><h4 class="text-lg font-bold">场地预约 <span class="text-xs font-normal text-accentRed bg-accentRed/10 px-2 py-0.5 rounded ml-1">待开放</span></h4><p class="text-xs text-gray-500 mt-1 leading-relaxed">在线预约学校会议室、实验室及各项运动场馆空间。</p></div>
+                    
+                    <div onclick="attemptAction('公共场地预约', 'reservation.html')" class="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100/60 cursor-pointer hover:-translate-y-1.5 hover:shadow-hover-glow transition-all duration-300 group flex gap-6 items-start">
+                        <div class="w-14 h-14 rounded-[20px] bg-accentPurple/10 text-accentPurple flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300"><i class="ph-fill ph-buildings text-2xl"></i></div>
+                        <div><h4 class="text-lg font-bold text-dark tracking-tight">公共场地预约</h4><p class="text-[13px] text-gray-500 font-medium mt-1.5 leading-relaxed">可视化楼层导航，在线锁定会议室与体育场馆专属时段。</p></div>
                     </div>
-                    <div class="bg-cardLight rounded-[32px] p-8 shadow-soft border border-gray-100 opacity-60 flex gap-5 items-start cursor-not-allowed">
-                        <div class="w-14 h-14 rounded-2xl bg-accentRed/20 text-accentRed flex items-center justify-center shrink-0"><i class="ph-fill ph-heart text-2xl"></i></div>
-                        <div><h4 class="text-lg font-bold">心理咨询预约 <span class="text-xs font-normal text-accentRed bg-accentRed/10 px-2 py-0.5 rounded ml-1">待开放</span></h4><p class="text-xs text-gray-500 mt-1 leading-relaxed">对接专业心理辅导教师，保障学生日常身心健康。</p></div>
+
+                    <div onclick="attemptAction('智慧宿管中心', 'dormitory.html')" class="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100/60 cursor-pointer hover:-translate-y-1.5 hover:shadow-hover-glow transition-all duration-300 group flex gap-6 items-start">
+                        <div class="w-14 h-14 rounded-[20px] bg-accentYellow/10 text-yellow-600 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300"><i class="ph-fill ph-house-line text-2xl"></i></div>
+                        <div><h4 class="text-lg font-bold text-dark tracking-tight">智慧宿管中心</h4><p class="text-[13px] text-gray-500 font-medium mt-1.5 leading-relaxed">查看宿舍详细分配、在线报修、费用缴纳及访客申请。</p></div>
                     </div>
                 </div>
             </div>
             
-            <footer class="py-8 mt-4 border-t border-gray-200/50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-400">
-                <div>© 2026 Edu.Space · 校园数字化综合服务平台</div>
+            <footer class="py-10 mt-6 border-t border-gray-200/60 flex justify-center items-center text-[11px] font-bold text-gray-400 uppercase tracking-widest opacity-0 animate-fade-up delay-300">
+                © 2026 Edu.Space · 校园数字化综合服务平台
             </footer>
         </main>
     </div>
 
-    <!-- 设置与个人中心 Modal -->
-    <div id="settings-modal" class="fixed inset-0 z-[200] flex items-center justify-center hidden">
-        <div onclick="toggleSettingsModal(false)" class="absolute inset-0 bg-dark/60 backdrop-blur-sm"></div>
-        <div class="relative bg-white w-full max-w-md rounded-[32px] shadow-2xl p-8 mx-4 transform transition-all duration-300">
+    <!-- 弹窗：通知中心 (Modern Glass UI) -->
+    <div id="notice-modal" class="fixed inset-0 z-[600] flex items-center justify-end hidden">
+        <div onclick="toggleNoticeModal(false)" class="absolute inset-0 bg-dark/20 backdrop-blur-sm transition-opacity"></div>
+        <div id="notice-panel" class="relative bg-white h-full w-full max-w-sm shadow-2xl p-8 transform translate-x-full transition-transform duration-500 flex flex-col">
+            <div class="flex justify-between items-center mb-8 shrink-0">
+                <h3 class="text-xl font-bold tracking-tight">校园提醒</h3>
+                <button onclick="toggleNoticeModal(false)" class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"><i class="ph-bold ph-x"></i></button>
+            </div>
+            <div class="flex-1 space-y-4 overflow-y-auto no-scrollbar" id="notice-list">
+                <div class="p-5 bg-accentBlue/5 rounded-[24px] border border-accentBlue/10">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-[10px] font-bold text-accentBlue uppercase tracking-widest">Library</span>
+                        <span class="text-[10px] text-gray-400 font-bold">1小时前</span>
+                    </div>
+                    <h4 class="text-sm font-bold text-dark">书籍即将到期</h4>
+                    <p class="text-xs text-gray-500 mt-1 leading-relaxed">《百年孤独》借阅剩余 2 天，请及时归还或办理续借。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹窗：虚拟校园卡 -->
+    <div id="card-modal" class="fixed inset-0 z-[600] flex items-center justify-center hidden">
+        <div onclick="toggleCardModal(false)" class="absolute inset-0 bg-dark/40 backdrop-blur-md transition-opacity"></div>
+        <div id="card-box" class="relative bg-white w-[340px] rounded-[40px] shadow-card-qr p-8 transform scale-90 opacity-0 transition-all duration-300 text-center">
+            <div class="w-20 h-20 bg-dark rounded-3xl mx-auto mb-6 flex items-center justify-center text-white text-3xl shadow-xl"><i class="ph-fill ph-qr-code"></i></div>
+            <h3 class="text-xl font-bold mb-1" id="card-user-name">---</h3>
+            <p class="text-xs text-gray-400 font-bold tracking-widest uppercase mb-8" id="card-user-id">ID: ---</p>
+            
+            <div class="bg-gray-50 rounded-[32px] p-6 mb-8 border border-gray-100">
+                <div class="w-full aspect-square bg-white rounded-2xl flex items-center justify-center p-4 border border-gray-100 relative overflow-hidden">
+                    <div class="grid grid-cols-4 gap-2 opacity-10 blur-[1px]"><div class="w-8 h-8 bg-dark"></div><div class="w-8 h-8 bg-dark"></div><div class="w-8 h-8 bg-dark"></div><div class="w-8 h-8 bg-dark"></div><div class="w-8 h-8 bg-dark"></div><div class="w-8 h-8 bg-dark"></div></div>
+                    <div class="absolute inset-0 flex items-center justify-center"><i class="ph ph-qr-code text-8xl text-dark"></i></div>
+                </div>
+                <p class="text-[10px] text-accentGreen font-bold mt-4 flex items-center justify-center gap-1.5 animate-pulse">
+                    <i class="ph-fill ph-circle text-[8px]"></i> 动态码每30秒自动刷新
+                </p>
+            </div>
+            <button onclick="toggleCardModal(false)" class="w-full bg-dark text-white py-4 rounded-2xl font-bold text-sm">完成使用</button>
+        </div>
+    </div>
+
+    <!-- 管理 Campus 账号 Modal (高保真深度还原设计图, 略微放大) -->
+    <div id="user-modal" class="fixed inset-0 z-[700] flex items-center justify-center hidden">
+        <div onclick="toggleUserModal(false)" class="absolute inset-0 bg-dark/40 backdrop-blur-sm transition-opacity"></div>
+        <div class="relative bg-[#FDFBF7] w-full max-w-[420px] rounded-[32px] shadow-2xl p-8 transform scale-95 opacity-0 transition-all duration-300" id="user-modal-box">
+            
+            <button onclick="toggleUserModal(false)" class="absolute top-6 right-6 w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+                <i class="ph-bold ph-x"></i>
+            </button>
+
+            <h3 class="text-xl font-bold text-dark mb-8 text-center">管理 Campus 账号</h3>
+
+            <button onclick="window.location.href='login.html'" class="w-full bg-[#1A1B1F] text-white py-3.5 rounded-[20px] font-bold text-sm hover:bg-gray-800 transition-all flex items-center justify-center gap-2 mb-6 shadow-md">
+                <i class="ph-bold ph-plus-circle text-lg"></i> 登录其他账号
+            </button>
+
+            <div class="flex items-center justify-center mb-6">
+                <hr class="w-12 border-gray-200">
+                <span class="px-3 text-[11px] font-bold text-gray-400">本地已登录账号</span>
+                <hr class="w-12 border-gray-200">
+            </div>
+
+            <div id="user-list" class="space-y-4 max-h-[40vh] overflow-y-auto no-scrollbar">
+                <!-- JS 渲染 -->
+            </div>
+
+            <p class="mt-8 text-center text-[11px] text-gray-400 font-medium">CampusLife - Powered by Supabase</p>
+        </div>
+    </div>
+
+    <!-- 个人设置 Modal -->
+    <div id="settings-modal" class="fixed inset-0 z-[800] flex items-center justify-center hidden">
+        <div onclick="closeSettingsModal()" class="absolute inset-0 bg-dark/40 backdrop-blur-sm transition-opacity"></div>
+        <div class="relative bg-white w-full max-w-md rounded-[32px] shadow-2xl p-8 mx-4 transform scale-95 opacity-0 transition-all duration-300" id="settings-box">
             <div class="flex justify-between items-center mb-8">
-                <h3 class="text-xl font-bold">个人资料与设置</h3>
-                <button onclick="toggleSettingsModal(false)" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"><i class="ph ph-x"></i></button>
+                <h3 class="text-xl font-bold tracking-tight text-dark">个人资料修改</h3>
+                <button onclick="closeSettingsModal()" class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-dark transition-colors"><i class="ph-bold ph-x"></i></button>
             </div>
             
-            <div class="space-y-4 mb-8 text-left">
+            <div class="space-y-5 text-left">
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">真实姓名</label>
-                    <input type="text" id="set-name" placeholder="您的姓名" class="w-full border border-gray-100 rounded-xl py-3 px-4 text-sm font-bold bg-gray-50 focus:bg-white focus:border-accentYellow outline-none transition-colors">
+                    <label class="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">真实姓名</label>
+                    <input type="text" id="set-name" class="w-full border border-gray-200 rounded-xl py-3.5 px-4 text-sm font-bold bg-white focus:ring-2 focus:ring-accentYellow focus:border-accentYellow outline-none transition-all shadow-sm">
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-5">
                     <div>
-                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">所在班级</label>
-                        <input type="text" id="set-class" placeholder="您的班级" class="w-full border border-gray-100 rounded-xl py-3 px-4 text-sm font-bold bg-gray-50 focus:bg-white focus:border-accentYellow outline-none transition-colors">
+                        <label class="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">所在班级</label>
+                        <input type="text" id="set-class" class="w-full border border-gray-200 rounded-xl py-3.5 px-4 text-sm font-bold bg-white focus:ring-2 focus:ring-accentYellow focus:border-accentYellow outline-none transition-all shadow-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">性别</label>
-                        <select id="set-gender" class="w-full border border-gray-100 rounded-xl py-3 px-4 text-sm font-bold bg-gray-50 focus:bg-white focus:border-accentYellow outline-none transition-colors">
+                        <label class="block text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">性别</label>
+                        <select id="set-gender" class="w-full border border-gray-200 rounded-xl py-3.5 px-4 text-sm font-bold bg-white focus:ring-2 focus:ring-accentYellow focus:border-accentYellow outline-none transition-all shadow-sm">
                             <option value="男">男</option><option value="女">女</option><option value="其他">其他</option>
                         </select>
                     </div>
                 </div>
-                <button onclick="saveSettings()" class="w-full bg-dark text-white py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-opacity-90 transition mt-2">保存修改</button>
-            </div>
-
-            <div class="border-t border-gray-100 pt-6">
-                <button onclick="handleLogout()" class="w-full text-accentRed font-bold text-sm py-3.5 bg-red-50 hover:bg-red-100 rounded-xl transition flex justify-center items-center gap-2">
-                    <i class="ph-bold ph-sign-out text-lg"></i> 退出当前账号
+                <button onclick="saveSettings()" id="btn-save-settings" class="w-full bg-dark text-white py-4 rounded-xl font-bold text-sm shadow-md hover:bg-gray-800 active:scale-95 transition-all mt-4 flex justify-center items-center gap-2">
+                    保存资料
                 </button>
             </div>
         </div>
     </div>
 
     <script>
-        // 检测登录状态，若未登录或不是学生，跳转至独立鉴权页
+        // 检测登录状态
         if (!localStorage.getItem('edu_space_user') || localStorage.getItem('edu_space_role') !== 'student') {
             window.location.href = 'login.html';
         }
 
         const api = {
-            getUser: async (id) => { const { data } = await window.supabase.from('users').select('*').eq('student_id', id).single(); return data; },
-            // 读取新闻：降序排列展示教师端通过 API 抓取并推送的数据
+            getUsers: async () => {
+                const { data, error } = await window.supabase.from('users').select('*').order('created_at', { ascending: false });
+                return error ? [] : (data || []);
+            },
+            getUser: async (id) => { 
+                const { data } = await window.supabase.from('users').select('*').eq('student_id', id).single(); 
+                return data; 
+            },
             getNews: async () => { 
                 const { data } = await window.supabase.from('news').select('*').order('created_at', { ascending: false }).limit(5);
                 if (data && data.length) return data;
                 return [{ tag: "📢 校园公告", title: "暂无校园动态", desc: "教务处暂未推送任何资讯，请稍后再来查看。", date: "2026-01-01", circle_color_1: "bg-gray-400", circle_color_2: "bg-gray-300", url: "#" }];
             },
-            // 读取系统设置中配置的模范学生数组
             getStarStudents: async () => {
                 const { data } = await window.supabase.from('system_settings').select('value').eq('key', 'star_students').single();
                 if (data && Array.isArray(data.value)) return data.value;
-                if (data && data.value && !Array.isArray(data.value)) return [data.value]; // 兼容旧单数据格式
+                if (data && data.value && !Array.isArray(data.value)) return [data.value];
                 return null;
             }
         };
@@ -188,89 +319,215 @@
         let currentUserId = localStorage.getItem('edu_space_user');
         let userData = null;
 
-        function handleLogout() { localStorage.removeItem('edu_space_user'); localStorage.removeItem('edu_space_role'); window.location.href = 'login.html'; }
+        function handleLogout(event) { 
+            if(event) event.stopPropagation();
+            localStorage.removeItem('edu_space_user'); 
+            localStorage.removeItem('edu_space_role'); 
+            window.location.href = 'login.html'; 
+        }
 
         function attemptAction(name, url = null) {
             if(url) window.location.href = url; else alert("已跳转至功能: " + name);
         }
 
-        function toggleSettingsModal(s) {
-            const m = document.getElementById('settings-modal');
-            if(s){ 
-                document.getElementById('set-name').value = userData.name || '';
-                document.getElementById('set-class').value = userData.class_name || '';
-                document.getElementById('set-gender').value = userData.gender || '';
+        // --- 弹窗逻辑集 ---
+        async function renderUserList() {
+            const listContainer = document.getElementById('user-list');
+            listContainer.innerHTML = '<div class="text-center py-4 text-gray-400 text-sm">获取中...</div>';
+            const users = await api.getUsers();
+            if (!users || users.length === 0) {
+                listContainer.innerHTML = '<p class="text-center py-4 text-gray-400 text-sm">暂无账号信息</p>'; return;
+            }
+            
+            listContainer.innerHTML = users.map(user => {
+                const isActive = user.student_id === currentUserId;
+                return `
+                <div class="flex items-center justify-between p-4 rounded-2xl bg-white border-2 transition-all ${isActive ? 'border-accentYellow shadow-sm' : 'border-transparent hover:border-gray-200'}">
+                    <div class="flex items-center gap-4 overflow-hidden">
+                        <img src="${user.avatar}" class="w-12 h-12 rounded-full bg-gray-50 border border-gray-100 shrink-0">
+                        <div class="truncate text-left">
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <span class="font-bold text-sm text-dark truncate">${user.name}</span>
+                                ${isActive ? '<span class="text-[10px] bg-accentYellow text-dark px-1.5 py-0.5 rounded font-bold shrink-0">当前</span>' : ''}
+                            </div>
+                            <div class="text-[11px] text-gray-400 font-medium truncate">${user.class_name || '学生'}</div>
+                        </div>
+                    </div>
+                    ${isActive ? `
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="openSettings('${user.student_id}', event)" class="w-9 h-9 rounded-full bg-gray-50 text-gray-500 flex items-center justify-center hover:bg-gray-200 hover:text-dark transition-colors"><i class="ph-fill ph-gear"></i></button>
+                        <button onclick="handleLogout(event)" class="w-9 h-9 rounded-full bg-gray-50 text-gray-500 flex items-center justify-center hover:bg-red-50 hover:text-accentRed transition-colors"><i class="ph-bold ph-sign-out"></i></button>
+                    </div>` : `
+                    <button onclick="switchUser('${user.student_id}')" class="px-4 py-2 bg-gray-100 rounded-xl text-xs font-bold text-dark hover:bg-gray-200 transition-colors shrink-0">切换</button>
+                    `}
+                </div>`;
+            }).join('');
+        }
+
+        function toggleUserModal(show) {
+            const m = document.getElementById('user-modal');
+            const box = document.getElementById('user-modal-box');
+            if (show) { 
+                renderUserList(); 
+                m.classList.remove('hidden'); 
+                setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+            } else { 
+                box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => { m.classList.add('hidden'); }, 300); 
+            }
+        }
+
+        function switchUser(userId) { 
+            currentUserId = userId; localStorage.setItem('edu_space_user', userId); 
+            toggleUserModal(false); window.location.reload(); 
+        }
+
+        async function openSettings(userId, event) {
+            if(event) event.stopPropagation();
+            toggleUserModal(false);
+            const user = await api.getUser(userId);
+            if(user) {
+                document.getElementById('set-name').value = user.name || '';
+                document.getElementById('set-class').value = user.class_name || '';
+                document.getElementById('set-gender').value = user.gender || '';
+                document.getElementById('settings-modal').dataset.userId = userId;
+                
+                const m = document.getElementById('settings-modal');
+                const box = document.getElementById('settings-box');
                 m.classList.remove('hidden');
-            } else m.classList.add('hidden');
+                setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+            }
+        }
+
+        function closeSettingsModal() {
+            const m = document.getElementById('settings-modal');
+            const box = document.getElementById('settings-box');
+            box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { m.classList.add('hidden'); toggleUserModal(true); }, 300);
         }
 
         async function saveSettings() {
+            const userId = document.getElementById('settings-modal').dataset.userId;
             const name = document.getElementById('set-name').value.trim(), cls = document.getElementById('set-class').value.trim(), gen = document.getElementById('set-gender').value;
             if (!/^[\u4e00-\u9fa5]+$/.test(name)) return alert("姓名必须为纯汉字");
             if (!name || !cls || !gen) return alert("请填写完整信息");
-            await window.supabase.from('users').update({ name: name, class_name: cls, gender: gen }).eq('student_id', currentUserId);
-            alert("个人资料已更新保存。"); toggleSettingsModal(false); window.DashboardApp.init();
+            
+            const btn = document.getElementById('btn-save-settings');
+            const orig = btn.innerHTML; btn.innerHTML = '保存中...'; btn.disabled = true;
+
+            try {
+                await window.supabase.from('users').update({ name: name, class_name: cls, gender: gen }).eq('student_id', userId);
+                alert("资料已更新"); 
+                closeSettingsModal(); 
+                if(userId === currentUserId) window.DashboardApp.init();
+            } catch(e) { alert(e.message); } finally { btn.innerHTML = orig; btn.disabled = false; }
         }
 
+        function toggleNoticeModal(s) {
+            const m = document.getElementById('notice-modal'); const panel = document.getElementById('notice-panel');
+            if(s) { m.classList.remove('hidden'); setTimeout(() => { panel.classList.remove('translate-x-full'); panel.classList.add('translate-x-0'); }, 10); } 
+            else { panel.classList.remove('translate-x-0'); panel.classList.add('translate-x-full'); setTimeout(() => { m.classList.add('hidden'); }, 500); }
+        }
+
+        function toggleCardModal(s) {
+            const m = document.getElementById('card-modal'); const box = document.getElementById('card-box');
+            if(s) {
+                document.getElementById('card-user-name').textContent = userData.name;
+                document.getElementById('card-user-id').textContent = `ID: ${userData.student_id}`;
+                m.classList.remove('hidden'); setTimeout(() => { box.classList.remove('scale-90', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+            } else {
+                box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-90', 'opacity-0'); setTimeout(() => { m.classList.add('hidden'); }, 300);
+            }
+        }
+
+        // --- 核心业务逻辑 (新闻 & 模范) ---
         window.DashboardApp = {
-            state: { news: [], stars: [], currentStarIdx: 0, i: 0, timer: null },
+            state: { news: [], stars: [], currentStarIdx: 0, i: 0, timer: null, starTimer: null },
             async init() {
+                document.getElementById('main-app').style.opacity = '1';
+
                 userData = await api.getUser(currentUserId);
                 if(!userData) { handleLogout(); return; }
                 
                 document.getElementById('user-greeting').textContent = `早安, ${userData.name}!`;
                 document.getElementById('header-avatar').src = userData.avatar;
+                document.getElementById('role-tag').classList.remove('hidden');
 
-                // 读取模范预设数组并初始化轮播
                 const stars = await api.getStarStudents() || [{ 
                     name: '李明', title: '高三1班 | 班长', quote: '在探索中发现自我，在学习中创造未来。', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=star' 
                 }];
                 this.state.stars = stars;
-                this.updateStar(0);
+                this.updateStar(0, false);
+                this.startStarTimer();
 
                 this.state.news = await api.getNews();
                 if(this.state.news.length > 0) {
-                    this.update(0); 
+                    this.update(0, false); 
                     this.startTimer();
                 }
             },
             
-            // 模范轮播逻辑
-            updateStar(index) {
+            startStarTimer() {
+                if (this.state.starTimer) clearInterval(this.state.starTimer);
+                this.state.starTimer = setInterval(() => this.nextStar(), 6000);
+            },
+            updateStar(index, animate = true) {
                 const star = this.state.stars[index];
                 if (!star) return;
-                document.getElementById('star-avatar').src = star.avatar;
-                document.getElementById('star-name').textContent = star.name;
-                document.getElementById('star-title').textContent = star.title;
-                document.getElementById('star-quote').textContent = `“${star.quote}”`;
+
+                const content = document.getElementById('star-content-container');
+                const updateDOM = () => {
+                    document.getElementById('star-avatar').src = star.avatar;
+                    document.getElementById('star-name').textContent = star.name;
+                    document.getElementById('star-title').textContent = star.title;
+                    document.getElementById('star-quote').textContent = `“${star.quote}”`;
+                    if(animate) { content.style.opacity = '1'; content.style.transform = 'translateY(0) scale(1)'; }
+                };
+
+                if(animate && content) {
+                    content.style.opacity = '0';
+                    content.style.transform = 'translateY(8px) scale(0.98)';
+                    setTimeout(updateDOM, 350);
+                } else { updateDOM(); }
                 this.state.currentStarIdx = index;
             },
             nextStar() {
                 const nextIdx = (this.state.currentStarIdx + 1) % this.state.stars.length;
-                this.updateStar(nextIdx);
+                this.updateStar(nextIdx, true);
+                this.startStarTimer();
             },
 
-            // 新闻轮播逻辑
             startTimer() {
                 if (this.state.timer) clearInterval(this.state.timer);
-                this.state.timer = setInterval(() => this.update((this.state.i + 1) % this.state.news.length), 5000);
+                this.state.timer = setInterval(() => this.update((this.state.i + 1) % this.state.news.length, true), 5000);
             },
             goToSlider(idx) {
-                this.update(idx);
+                this.update(idx, true);
                 this.startTimer();
             },
-            update(index) {
+            update(index, animate = true) {
                 const data = this.state.news[index]; if(!data) return;
-                document.getElementById('news-circle-1').className = `absolute top-[-10%] right-[-5%] w-80 h-80 rounded-full filter blur-[80px] opacity-50 transition-all duration-1000 group-hover:scale-110 ${data.circle_color_1}`;
-                document.getElementById('news-circle-2').className = `absolute bottom-[10%] left-[25%] w-64 h-64 rounded-full filter blur-[80px] opacity-40 transition-all duration-1000 group-hover:scale-110 ${data.circle_color_2}`;
-                document.getElementById('news-tag').textContent = data.tag; document.getElementById('news-title').textContent = data.title;
-                document.getElementById('news-desc').textContent = data.desc; document.getElementById('news-date').textContent = data.date;
+                const content = document.getElementById('headline-content');
                 
-                const readBtn = document.getElementById('news-read-btn');
-                readBtn.onclick = () => { if(data.url && data.url !== '#') window.open(data.url, '_blank'); };
-                readBtn.style.display = data.url && data.url !== '#' ? 'inline-block' : 'none';
-                
-                document.getElementById('news-indicators').innerHTML = this.state.news.map((_, idx) => `<div onclick="window.DashboardApp.goToSlider(${idx})" class="w-2 h-2 rounded-full cursor-pointer transition-all ${idx===index?'bg-dark w-6':'bg-gray-400'}"></div>`).join('');
+                const updateDOM = () => {
+                    document.getElementById('news-circle-1').className = `absolute top-[-10%] right-[-5%] w-80 h-80 rounded-full filter blur-[80px] opacity-50 transition-all duration-1000 group-hover:scale-110 ${data.circle_color_1}`;
+                    document.getElementById('news-circle-2').className = `absolute bottom-[10%] left-[25%] w-64 h-64 rounded-full filter blur-[80px] opacity-40 transition-all duration-1000 group-hover:scale-110 ${data.circle_color_2}`;
+                    document.getElementById('news-tag').textContent = data.tag; document.getElementById('news-title').textContent = data.title;
+                    document.getElementById('news-desc').textContent = data.desc; document.getElementById('news-date').textContent = data.date;
+                    
+                    const readBtn = document.getElementById('news-read-btn');
+                    readBtn.onclick = () => { if(data.url && data.url !== '#') window.open(data.url, '_blank'); };
+                    readBtn.style.display = data.url && data.url !== '#' ? 'inline-flex' : 'none';
+                    
+                    document.getElementById('news-indicators').innerHTML = this.state.news.map((_, idx) => `<div onclick="window.DashboardApp.goToSlider(${idx})" class="h-2 rounded-full cursor-pointer transition-all duration-300 ${idx===index?'bg-dark w-8 shadow-md':'bg-gray-300/80 w-2 hover:bg-gray-400'}"></div>`).join('');
+                    
+                    if(animate) { content.style.opacity = '1'; content.style.transform = 'translateX(0)'; }
+                };
+
+                if(animate && content) {
+                    content.style.opacity = '0'; content.style.transform = 'translateX(-12px)';
+                    setTimeout(updateDOM, 350);
+                } else { updateDOM(); }
                 this.state.i = index;
             }
         };
